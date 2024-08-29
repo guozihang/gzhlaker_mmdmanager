@@ -1,0 +1,20 @@
+
+/data/*
+!/data/Model/
+!/data/Scene/
+!/data/MME/
+!/data/Vmd/
+
+/data/Model/*
+!/data/Model/kizunaai/
+/data/Scene/*
+!/data/Scene/Pikachu dance stage/
+/data/MME/*
+!/data/MME/AutoLuminous4/
+/data/Vmd/*
+!/data/Vmd/Everyday(AwaDance)/
+
+/img/*
+/project/*
+/software/*
+

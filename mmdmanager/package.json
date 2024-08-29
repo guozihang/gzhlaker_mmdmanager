@@ -1,0 +1,26 @@
+{
+	"main":"index.html",
+	"name":"MMDManager",
+	"description":"MMDManager",
+	"version":"0.1.0",
+	"window": {   
+        "title": "demo",  
+        "icon": "icon.png",  
+        "toolbar": true,  
+        "resizable": true,  
+        "fullscreen": false,  
+        "show_in_taskbar": true,  
+        "frame": true,  
+        "position": "center",  
+        "width": 1487,  
+        "height": 967,  
+        "min_width": 400,  
+        "min_height": 300,     
+        "show": true,  
+        "show_in_taskbar":true,   
+        "kiosk": false  
+    }, 
+	"dependencies":{
+    },
+    "chromium-args": "--ppapi-flash-path=PepperFlash/pepflashplayer.dll --ppapi-flash-version=32.0.0.255"
+}
