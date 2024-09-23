@@ -69,6 +69,7 @@
                         <template slot="append">模型数：{{getModelsNum()}}</template>
                     </el-input>
                     <el-table :data="models" stripe style="width: 100%">
+                        <!--######################### id #########################-->
                         <el-table-column sortable prop="id" label="id" width="60">
                             <div slot-scope="scope">
                                 <el-popover placement="bottom" title="" trigger="hover" :content="scope.row.address">
@@ -80,6 +81,7 @@
                                 </el-popover>
                             </div>
                         </el-table-column>
+                        <!--######################### 姓名、图片、说明 #########################-->
                         <el-table-column sortable prop="name" label="姓名" width="360">
                             <div slot-scope="scope">
                                 <span>{{scope.row.name}}</span>
@@ -118,6 +120,7 @@
                                 </el-popover>
                             </div>
                         </el-table-column>
+                        <!--######################### 标签 #########################-->
                         <el-table-column>
                             <div slot-scope="scope">
                                 <div v-if="scope.row.type == 'yes'">
@@ -132,11 +135,13 @@
                                 </div>
                             </div>
                         </el-table-column>
+                        <!--######################### 模型 #########################-->
                         <el-table-column prop="models" >
                             <div slot-scope="scope">
                                 <el-button size="mini" circle v-for="item in scope.row.models" @click="updateModel(item)">模</el-button>
                             </div>
                         </el-table-column>
+                        <!--######################### 收藏 #########################-->
                         <el-table-column width="60">
                             <div slot-scope="scope">
                                 <el-button circle @click="vip(scope.row, '人物模型')">藏</el-button>
@@ -224,13 +229,14 @@
                         </el-table-column>
                     </el-table>
                 </el-tab-pane>
-
+                
                 <el-tab-pane label="MME">
                     <el-input v-model="search" placeholder="查找...">
                         <template slot="prepend"><el-button type="text" @click="clearTag()"><span>{{tag}}</span></el-button></template>
-                        <template slot="append">VMD数：{{getMMENum()}}</template>
+                        <template slot="append">模型数：{{getModelsNum()}}</template>
                     </el-input>
                     <el-table :data="mmes" stripe style="width: 100%">
+                        <!--######################### id #########################-->
                         <el-table-column sortable prop="id" label="id" width="60">
                             <div slot-scope="scope">
                                 <el-popover placement="bottom" title="" trigger="hover" :content="scope.row.address">
@@ -242,80 +248,14 @@
                                 </el-popover>
                             </div>
                         </el-table-column>
-                        <el-table-column sortable prop="name" label="姓名" width="360">
-                            <div slot-scope="scope">
-                                <span>{{scope.row.name}}</span>
-                                <el-popover v-if="scope.row.type == 'yes'" placement="bottom" title="" trigger="hover">
-                                    <div>
-                                        <table class="table table-hover">
-                                            <thead>
-                                                <tr>
-                                                    <th scope="col">项</th>
-                                                    <th scope="col">值</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <template v-for="(item, index) in scope.row.info.authority">
-                                                <tr>
-                                                    <th>
-                                                        {{index}}
-                                                    </th>
-                                                    <td>{{item}}</td>
-                                                </tr>
-                                                </template>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <el-button circle slot="reference" size="mini">说</el-button>
-                                </el-popover>
-                            </div>
-                        </el-table-column>
-                        <el-table-column>
-                            <div slot-scope="scope">
-                                <div v-if="scope.row.type == 'yes'">
-                                    <span v-for="item in scope.row.info.tags" :key="item" style="margin-right:3px">
-                                        <el-tag>
-                                            <el-button type="text" size="mini" @click="changeTag(item)">{{item}}</el-button>
-                                        </el-tag>
-                                    </span>
-                                    
-                                </div>
-                                <div v-else-if="scope.row.type == 'no'">
-                                </div>
-                            </div>
-                        </el-table-column>
-                        <el-table-column width="60">
-                            <div slot-scope="scope">
-                                <el-button circle @click="vip(scope.row, 'MME')">藏</el-button>
-                            </div>
-                        </el-table-column>
-                    </el-table>
-                </el-tab-pane>
-
-                <el-tab-pane label="VMD">
-                    <el-input v-model="search" placeholder="查找...">
-                        <template slot="prepend"><el-button type="text" @click="clearTag()"><span>{{tag}}</span></el-button></template>
-                        <template slot="append">VMD数：{{getVMDNum()}}</template>
-                    </el-input>
-                    <el-table :data="vmds" stripe style="width: 100%">
-                        <el-table-column sortable prop="id" label="id" width="60">
-                            <div slot-scope="scope">
-                                <el-popover placement="bottom" title="" trigger="hover" :content="scope.row.address">
-                                    <div>
-                                        <span>{{scope.row.address}}</span>
-                                        <el-button circle size="mini" @click="copy(scope.row.address)" slot="reference">复</el-button>
-                                    </div>
-                                    <el-button type="text" @click="open(scope.row.address)" slot="reference">{{scope.row.id}}</el-button>
-                                </el-popover>
-                            </div>
-                        </el-table-column>
+                        <!--######################### 姓名、图片、说明 #########################-->
                         <el-table-column sortable prop="name" label="姓名" width="360">
                             <div slot-scope="scope">
                                 <span>{{scope.row.name}}</span>
                                 <span v-if="scope.row.img == 'yes'">
                                     <el-popover placement="bottom" title="" width="800" trigger="hover" :content="scope.row.address">
                                         <div >
-                                            <img :src="scope.row.address + 'image.gif'">
+                                            <img :src="scope.row.address + 'image.png'">
                                         </div>
                                         <el-button circle size="mini"  slot="reference">图</el-button>
                                     </el-popover>
@@ -343,9 +283,11 @@
                                         </table>
                                     </div>
                                     <el-button circle slot="reference" size="mini">说</el-button>
+                                    
                                 </el-popover>
                             </div>
                         </el-table-column>
+                        <!--######################### 标签 #########################-->
                         <el-table-column>
                             <div slot-scope="scope">
                                 <div v-if="scope.row.type == 'yes'">
@@ -360,29 +302,184 @@
                                 </div>
                             </div>
                         </el-table-column>
+                        <!--######################### 收藏 #########################-->
                         <el-table-column width="60">
                             <div slot-scope="scope">
-                                <el-button circle @click="vip(scope.row, 'VMD')">藏</el-button>
+                                <el-button circle @click="vip(scope.row, '人物模型')">藏</el-button>
+                            </div>
+                        </el-table-column>
+                    </el-table>
+                </el-tab-pane>
+                <el-tab-pane label="VMD">
+                    <el-input v-model="search" placeholder="查找...">
+                        <template slot="prepend"><el-button type="text" @click="clearTag()"><span>{{tag}}</span></el-button></template>
+                        <template slot="append">模型数：{{getModelsNum()}}</template>
+                    </el-input>
+                    <el-table :data="vmds" stripe style="width: 100%">
+                        <!--######################### id #########################-->
+                        <el-table-column sortable prop="id" label="id" width="60">
+                            <div slot-scope="scope">
+                                <el-popover placement="bottom" title="" trigger="hover" :content="scope.row.address">
+                                    <div>
+                                        <span>{{scope.row.address}}</span>
+                                        <el-button circle size="mini" @click="copy(scope.row.address)" slot="reference">复</el-button>
+                                    </div>
+                                    <el-button type="text" @click="open(scope.row.address)" slot="reference">{{scope.row.id}}</el-button>
+                                </el-popover>
+                            </div>
+                        </el-table-column>
+                        <!--######################### 姓名、图片、说明 #########################-->
+                        <el-table-column sortable prop="name" label="姓名" width="360">
+                            <div slot-scope="scope">
+                                <span>{{scope.row.name}}</span>
+                                <span v-if="scope.row.img == 'yes'">
+                                    <el-popover placement="bottom" title="" width="800" trigger="hover" :content="scope.row.address">
+                                        <div >
+                                            <img :src="scope.row.address + 'image.png'">
+                                        </div>
+                                        <el-button circle size="mini"  slot="reference">图</el-button>
+                                    </el-popover>
+                                </span>
+                                
+                                <el-popover v-if="scope.row.type == 'yes'" placement="bottom" title="" trigger="hover">
+                                    <div>
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">项</th>
+                                                    <th scope="col">值</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template v-for="(item, index) in scope.row.info.authority">
+                                                <tr>
+                                                    <th>
+                                                        {{index}}
+                                                    </th>
+                                                    <td>{{item}}</td>
+                                                </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <el-button circle slot="reference" size="mini">说</el-button>
+                                    
+                                </el-popover>
+                            </div>
+                        </el-table-column>
+                        <!--######################### 标签 #########################-->
+                        <el-table-column>
+                            <div slot-scope="scope">
+                                <div v-if="scope.row.type == 'yes'">
+                                    <span v-for="item in scope.row.info.tags" :key="item" style="margin-right:3px">
+                                        <el-tag>
+                                            <el-button type="text" size="mini" @click="changeTag(item)">{{item}}</el-button>
+                                        </el-tag>
+                                    </span>
+                                    
+                                </div>
+                                <div v-else-if="scope.row.type == 'no'">
+                                </div>
+                            </div>
+                        </el-table-column>
+                        <!--######################### 收藏 #########################-->
+                        <el-table-column width="60">
+                            <div slot-scope="scope">
+                                <el-button circle @click="vip(scope.row, '人物模型')">藏</el-button>
                             </div>
                         </el-table-column>
                     </el-table>
                 </el-tab-pane>
                 <el-tab-pane label="收藏">
+                    <el-input v-model="search" placeholder="查找...">
+                        <template slot="prepend"><el-button type="text" @click="clearTag()"><span>{{tag}}</span></el-button></template>
+                        <template slot="append"><el-button type="text" size="mini" @click="save()">存</el-button></template>
+                    </el-input>
                     <el-table :data=important stripe style="width: 100%">
-                        <el-table-column sortable prop="type" label="类型" width="180"></el-table-column>
-                        <el-table-column sortable prop="name" label="姓名" width="180"></el-table-column>
-                        <el-table-column sortable prop="address" label="地址">
+                        <!--######################### id #########################-->
+                        <el-table-column sortable prop="id" label="id" width="60">
                             <div slot-scope="scope">
-                                <el-button @click="del(scope.row.id)">删除</el-button>
-                                <el-button @click="open(scope.row.address)">{{scope.row.address}}</el-button>
+                                <el-popover placement="bottom" title="" trigger="hover" :content="scope.row.address">
+                                    <div>
+                                        <span>{{scope.row.address}}</span>
+                                        <el-button circle size="mini" @click="copy(scope.row.address)" slot="reference">复</el-button>
+                                    </div>
+                                    <el-button type="text" @click="open(scope.row.address)" slot="reference">{{scope.row.id}}</el-button>
+                                </el-popover>
                             </div>
-                            
+                        </el-table-column>
+                        <!--######################### 姓名、图片、说明 #########################-->
+                        <el-table-column sortable prop="name" label="姓名" width="360">
+                            <div slot-scope="scope">
+                                <span>{{scope.row.name}}</span>
+                                <span v-if="scope.row.img == 'yes'">
+                                    <el-popover placement="bottom" title="" width="800" trigger="hover" :content="scope.row.address">
+                                        <div >
+                                            <img :src="scope.row.address + 'image.png'">
+                                        </div>
+                                        <el-button circle size="mini"  slot="reference">图</el-button>
+                                    </el-popover>
+                                </span>
+                                
+                                <el-popover v-if="scope.row.type == 'yes'" placement="bottom" title="" trigger="hover">
+                                    <div>
+                                        <table class="table table-hover">
+                                            <thead>
+                                                <tr>
+                                                    <th scope="col">项</th>
+                                                    <th scope="col">值</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <template v-for="(item, index) in scope.row.info.authority">
+                                                <tr>
+                                                    <th>
+                                                        {{index}}
+                                                    </th>
+                                                    <td>{{item}}</td>
+                                                </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <el-button circle slot="reference" size="mini">说</el-button>
+                                    
+                                </el-popover>
+                            </div>
+                        </el-table-column>
+                        <!--######################### 标签 #########################-->
+                        <el-table-column>
+                            <div slot-scope="scope">
+                                <div v-if="scope.row.type == 'yes'">
+                                    <span v-for="item in scope.row.info.tags" :key="item" style="margin-right:3px">
+                                        <el-tag>
+                                            <el-button type="text" size="mini" @click="changeTag(item)">{{item}}</el-button>
+                                        </el-tag>
+                                    </span>
+                                    
+                                </div>
+                                <div v-else-if="scope.row.type == 'no'">
+                                </div>
+                            </div>
+                        </el-table-column>
+                        <!--######################### 模型 #########################-->
+                        <el-table-column prop="models" >
+                            <div slot-scope="scope">
+                                <el-button size="mini" circle v-for="item in scope.row.models" @click="updateModel(item)">模</el-button>
+                            </div>
+                        </el-table-column>
+                        <!--######################### 删除 #########################-->
+                        <el-table-column width="60">
+                            <div slot-scope="scope">
+                                <el-button circle @click="del(scope.row.id)">删</el-button>
+                            </div>
                         </el-table-column>
                     </el-table>
                 </el-tab-pane>
             </el-tabs>
         </div>
     </template>
+
     <template id="tProject">
         <div>
             <el-tabs type="border-card">

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MMDManager</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" type="text/css" href="css/animate.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="css/element.css">
+    <link rel="stylesheet" type="text/css" href="css/main.css">
+</head>
+<body data-spy="scroll" data-target="#bar" data-offset="1">
+    <!-- 主体 -->
+    <div id="app" class="el-container is-vertical" @drop="open">
+        <header class="el-header">
+        </header>
+        <main class="el-main">
+            <el-row :gutter="20">
+                <el-col :span="20" :offset="2">
+                    <transition id="aniset" mode="out-in" enter-active-class="animated fadeIn" leave-active-class="animated fadeOut">       
+                        <router-view class="container-fluid">
+                            
+                        </router-view>
+                    </transition>
+                </el-col>
+            </el-row>
+        </main>
+    </div>
+    <!--------------------------- Template ----------------------------->
+    <!--######################### 初始化 #########################-->
+    <template id='tInit'>
+        <div class="el-container">
+            <div class="el-main">初始化中</div>
+        </div>
+    </template>
+    <!--######################### 开始 #########################-->
+    <template id="tGame">
+        <div>
+            <el-select v-model="subdir" placeholder="请选择" style="width: 100%; padding-bottom: 10px;">
+                <el-option
+                  v-for="item in games"
+                  :key="item.id"
+                  :label="item.name"
+                  :value="item.id">
+                </el-option>
+            </el-select>
+            <br>
+            <el-tabs type="border-card">
+                <el-tab-pane v-for="panel in games[subdir].panels" :label="panel.name" :id="panel.id">
+                    <el-table :data="panel.files" stripe style="width: 100%">
+                        <el-table-column sortable prop="id" label="id" width="60">
+                            <div slot-scope="scope">
+                                <el-popover placement="bottom" title="" trigger="hover" :content="scope.row.address">
+                                    <div>
+                                        <span>{{scope.row.address}}</span>
+                                        <el-button circle size="mini" @click="copy(scope.row.address)" slot="reference">复</el-button>
+                                    </div>
+                                    <el-button type="text" @click="open(scope.row.address)" slot="reference">{{scope.row.id}}</el-button>
+                                </el-popover>
+                            </div>
+                        </el-table-column>
+                        <el-table-column sortable prop="name" label="姓名" width="600">
+                            <div slot-scope="scope">
+                                <span>{{scope.row.name}}</span>
+                                <span>
+                                    
+                                    <el-popover placement="bottom" title="" width="100%" trigger="click" :content="scope.row.address">
+                                        
+                                        <div >
+                                            <el-image 
+                                                style="width: 100%; height: 100%;"
+                                                :src="scope.row.address" 
+                                                :preview-src-list="srcList"
+                                                fit="contain"
+                                                @click="vbs(scope.row.address)">
+                                            </el-image>
+                                        </div>
+                                        <el-button circle size="mini" slot="reference">图</el-button>
+                                    </el-popover>
+                                </span>
+                            </div>
+                        </el-table-column>
+                    </el-table>
+                </el-tab-pane>
+            </el-tabs>
+        </div>
+    </template>
+</body>
+<script type="text/javascript" src="js/lib/jquery.js"></script>
+<script type="text/javascript" src="js/lib/popper.js"></script>
+<script type="text/javascript" src="js/lib/bootstrap.js"></script>
+<script type="text/javascript" src="js/lib/hullabaloo.js"></script>
+<script type="text/javascript" src="js/lib/vue.js"></script>
+<script type="text/javascript" src="js/lib/vue-router.js"></script>
+<script type="text/javascript" src="js/lib/vuex.js"></script>
+<script type="text/javascript" src="js/lib/element.js"></script>
+
+<script type="text/javascript" src="js/import.js"></script>
+<script type="text/javascript" src="js/utils.js"></script>
+<script type="text/javascript" src="js/manager.js"></script>
+<script type="text/javascript" src="js/model.js"></script>
+<script type="text/javascript" src="js/components.js"></script>
+<script type="text/javascript" src="js/main.js"></script>
+<script type="text/javascript" src="js/menu.js"></script>
+
+
+</html>
