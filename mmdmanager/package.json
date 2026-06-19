@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "MMDManager",
   "author": "guozihang",
+  "repository": "https://github.com/guozihang/gzhlaker_tool",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
