@@ -5,10 +5,12 @@ on:
     branches: [main]
     paths:
       - 'mmdmanager/**'
+      - '.github/workflows/**'
   pull_request:
     branches: [main]
     paths:
       - 'mmdmanager/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:
