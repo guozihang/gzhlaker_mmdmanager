@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, ipcMain, clipboard, shell } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain, clipboard, shell, dialog } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
 
@@ -181,6 +181,23 @@ function createWindow() {
 }
 
 // IPC handlers
+ipcMain.handle('dialog:openDirectory', async (event, defaultPath) => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openDirectory'],
+        defaultPath: defaultPath || undefined
+    });
+    return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle('dialog:openFile', async (event, { defaultPath, filters }) => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+        properties: ['openFile'],
+        defaultPath: defaultPath || undefined,
+        filters: filters || [{ name: 'MMD Models', extensions: ['pmx', 'pmd'] }]
+    });
+    return result.canceled ? null : result.filePaths[0];
+});
+
 ipcMain.handle('child-process:exec', (event, { command, options }) => {
     const { exec } = require('child_process');
     return new Promise((resolve) => {

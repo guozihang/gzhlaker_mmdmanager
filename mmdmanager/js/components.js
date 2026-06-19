@@ -46,6 +46,36 @@ var componentInit = {
                 fs.writeFile(dataJsonPath, '[]', function(){});
             }
             /*----------------------
+            # ● 读取配置文件
+            ----------------------*/
+            var settingsPath = PathManager.PROGRAMPATH + '/mmdmanager_settings.json';
+            var applySettings = function(cfg) {
+                if (cfg.dataPath && cfg.dataPath !== PathManager.PROGRAMPATH) {
+                    PathManager.PROGRAMPATH = cfg.dataPath;
+                    PathManager.DATAPATH = path.join(cfg.dataPath, 'data') + path.sep;
+                    PathManager.SOFTPATH = path.join(cfg.dataPath, 'software') + path.sep;
+                    PathManager.PROJECTPATH = path.join(cfg.dataPath, 'project') + path.sep;
+                    PathManager.MODELPATH = path.join(PathManager.DATAPATH, 'Model') + path.sep;
+                    PathManager.MMEPATH = path.join(PathManager.DATAPATH, 'MME') + path.sep;
+                    PathManager.SCENEPATH = path.join(PathManager.DATAPATH, 'Scene') + path.sep;
+                    PathManager.VMDPATH = path.join(PathManager.DATAPATH, 'Vmd') + path.sep;
+                    PathManager.GAMEPATH = path.join(PathManager.DATAPATH, 'Game') + path.sep;
+                }
+                if (cfg.dataFileName) PathManager.dataFileName = cfg.dataFileName;
+            };
+            if (fs.existsSync(settingsPath)) {
+                window.fs.readFile(settingsPath, function(err, data) {
+                    if (err || !data) return;
+                    try {
+                        var cfg = JSON.parse(data.toString('utf8'));
+                        this.$store.state.settings = cfg;
+                        applySettings(cfg);
+                    } catch(e) {}
+                }.bind(this));
+            }
+            // Set default settings value
+            this.$store.state.settings.dataPath = this.$store.state.settings.dataPath || PathManager.PROGRAMPATH;
+            /*----------------------
             # ● 读取系统文件列表
             ----------------------*/
             window.fs.readFile(PathManager.getDataFullPath(), (err, data) => {
@@ -336,6 +366,14 @@ var componentIndex = {
                 this.$store.commit("important", value);
             },
         },
+        settings: {
+            get() {
+                return this.$store.state.settings;
+            },
+            set(value) {
+                this.$store.commit("settings", value);
+            },
+        },
     },
     methods: {
         open: function (address) {
@@ -433,16 +471,41 @@ var componentIndex = {
                 }
                 this.showPath = path;
             } else {
+                // Same model: stop animation, reset pose
+                if (window.model && window.model.mixer) {
+                    for (var i = 0; i < window.model.mixer._actions.length; i++) {
+                        window.model.mixer._actions[i].stop();
+                    }
+                }
                 resetCamera();
                 $("#modelButton").click();
             }
             $("#modelButton").click();
         },
         playVmd: function (vmdPath) {
+            var self = this;
             if (!window.model) {
-                this.message("请先在人物模型中选择并加载模型");
+                var defaultPath = self.settings.defaultModelPath;
+                if (!defaultPath) {
+                    self.message("请先在人物模型中选择并加载模型，或在设置中配置默认模型路径");
+                    return;
+                }
+                self.message("正在加载默认模型...");
+                window.loader.MMDLoader.loadModel(defaultPath, function(mmd) {
+                    window.model = mmd;
+                    model = mmd;
+                    window.scene.add(window.model);
+                    setupModel(mmd);
+                    // Now load VMD
+                    self._loadVmd(vmdPath);
+                }, window.onProgress, function() {
+                    self.message("默认模型加载失败");
+                });
                 return;
             }
+            this._loadVmd(vmdPath);
+        },
+        _loadVmd: function(vmdPath) {
             var self = this;
             resetCamera();
             $("#modelButton").click();
@@ -477,6 +540,44 @@ var componentIndex = {
                 }
             );
         },
+        selectDataPath: function() {
+            var self = this;
+            var currentPath = self.settings.dataPath || PathManager.PROGRAMPATH;
+            window.dialog.openDirectory(currentPath).then(function(result) {
+                if (result) {
+                    self.settings = Object.assign({}, self.settings, { dataPath: result });
+                }
+            });
+        },
+        selectDefaultModel: function() {
+            var self = this;
+            var currentPath = self.settings.defaultModelPath || PathManager.MODELPATH;
+            window.dialog.openFile(currentPath, [{ name: 'MMD模型', extensions: ['pmx', 'pmd'] }]).then(function(result) {
+                if (result) {
+                    self.settings = Object.assign({}, self.settings, { defaultModelPath: result });
+                }
+            });
+        },
+        saveSettings: function() {
+            var self = this;
+            var settingsPath = PathManager.PROGRAMPATH + '/mmdmanager_settings.json';
+            var data = JSON.stringify(self.settings, null, 2);
+            window.fs.writeFile(settingsPath, data, function(err) {
+                if (err) {
+                    self.message("保存失败: " + err.message);
+                } else {
+                    self.message("配置已保存，刷新页面后生效");
+                }
+            });
+        },
+        resetSettings: function() {
+            var defaults = {
+                dataPath: PathManager.PROGRAMPATH,
+                dataFileName: 'data.json'
+            };
+            this.settings = defaults;
+            this.message("已恢复默认配置，保存后刷新生效");
+        },
         message: function (info) {
             const h = this.$createElement;
             this.$notify({
@@ -486,6 +587,12 @@ var componentIndex = {
                 message: "<div><strong>" + info + "</strong></div>",
             });
         },
+    },
+};
+var componentSetting = {
+    template: '#tSetting',
+    created: function() {
+        router.replace('/index');
     },
 };
 var componentProject = {

@@ -6,7 +6,12 @@ window.store = new Vuex.Store({
 		showPath: "",
 		data : {},
 		important: [],
-		software: []
+		software: [],
+		settings: {
+			dataPath: '',
+			dataFileName: 'data.json',
+			defaultModelPath: ''
+		}
   	},
   	mutations: {
 		index(state, value){state.index = value},
@@ -16,5 +21,6 @@ window.store = new Vuex.Store({
 		data(state, value){state.data = value},
 		important(state, value){state.important = value},
 		software(state, value){state.software = value},
+		settings(state, value){state.settings = value},
   	}
 })

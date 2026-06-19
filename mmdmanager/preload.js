@@ -5,9 +5,10 @@ const processMod = require('process');
 
 // App root directory for data storage
 // Packaged: exe directory (all platforms), dev: __dirname
-const { app } = require('electron');
+// Most reliable way to detect asar packaging
+const isPackaged = __dirname.indexOf('.asar') !== -1;
 let PROGRAMPATH;
-if (app.isPackaged) {
+if (isPackaged) {
     PROGRAMPATH = pathMod.dirname(process.execPath);
 } else {
     PROGRAMPATH = __dirname;
@@ -99,6 +100,11 @@ contextBridge.exposeInMainWorld('child_process', {
     spawn: (exePath, args, options) => {
         return ipcRenderer.invoke('child-process:spawn', { exePath, args, options });
     }
+});
+
+contextBridge.exposeInMainWorld('dialog', {
+    openDirectory: (defaultPath) => ipcRenderer.invoke('dialog:openDirectory', defaultPath),
+    openFile: (defaultPath, filters) => ipcRenderer.invoke('dialog:openFile', { defaultPath, filters })
 });
 
 contextBridge.exposeInMainWorld('clipboard', {
