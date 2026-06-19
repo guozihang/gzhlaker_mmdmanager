@@ -491,11 +491,7 @@ var componentIndex = {
                 this.showPath = path;
             } else {
                 // Same model: stop animation, reset pose
-                if (window.model && window.model.mixer) {
-                    for (var i = 0; i < window.model.mixer._actions.length; i++) {
-                        window.model.mixer._actions[i].stop();
-                    }
-                }
+                stopAnimation();
                 resetCamera();
                 $("#modelButton").click();
             }
