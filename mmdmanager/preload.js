@@ -4,12 +4,17 @@ const pathMod = require('path');
 const processMod = require('process');
 
 // App root directory for data storage
-// Packaged: exe directory (all platforms), dev: __dirname
-// Most reliable way to detect asar packaging
+// Packaged: platform-appropriate persistent location, dev: __dirname
 const isPackaged = __dirname.indexOf('.asar') !== -1;
 let PROGRAMPATH;
 if (isPackaged) {
-    PROGRAMPATH = pathMod.dirname(process.execPath);
+    if (process.platform === 'win32') {
+        // Windows: use AppData (portable extracts to temp, which gets cleared)
+        PROGRAMPATH = pathMod.join(process.env.APPDATA, 'mmdmanager');
+    } else {
+        // macOS: exe directory
+        PROGRAMPATH = pathMod.dirname(process.execPath);
+    }
 } else {
     PROGRAMPATH = __dirname;
 }
