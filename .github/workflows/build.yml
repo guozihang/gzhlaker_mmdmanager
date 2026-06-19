@@ -34,12 +34,17 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build Electron app
+      - name: Build and publish (push to main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build -- --publish always
+
+      - name: Build only (PR)
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main'
         run: npm run build
 
-      - name: Upload artifacts (macOS)
+      - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
         uses: actions/upload-artifact@v4
         with:
@@ -48,7 +53,7 @@ jobs:
             mmdmanager/dist/*.dmg
             mmdmanager/dist/*.zip
 
-      - name: Upload artifacts (Windows)
+      - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
         uses: actions/upload-artifact@v4
         with:

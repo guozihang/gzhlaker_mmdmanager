@@ -2,13 +2,14 @@
   "name": "MMDManager",
   "version": "0.1.0",
   "description": "MMDManager",
+  "author": "guozihang",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
     "build:mac": "electron-builder --mac",
     "build:win": "electron-builder --win",
-    "build:all": "electron-builder --mac --win"
+    "build:all": "electron-builder --mac --win --publish always"
   },
   "devDependencies": {
     "electron": "^42.4.1",
@@ -26,10 +27,7 @@
       "index.html",
       "icon.png",
       "css/**/*",
-      "js/**/*",
-      "data/**/*",
-      "software/**/*",
-      "project/**/*"
+      "js/**/*"
     ],
     "mac": {
       "target": [
@@ -47,6 +45,10 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
+    },
+    "publish": {
+      "provider": "github",
+      "releaseType": "draft"
     }
   }
 }
