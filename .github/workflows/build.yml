@@ -20,7 +20,11 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        include:
+          - os: macos-latest
+            platform: mac
+          - os: windows-latest
+            platform: win
     runs-on: ${{ matrix.os }}
 
     defaults:
@@ -36,66 +40,32 @@ jobs:
         with:
           node-version: '20'
 
+      - name: Get version
+        id: ver
+        shell: bash
+        run: echo "v=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
       - name: Install dependencies
         run: npm install
 
       - name: Build
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npm run build -- --publish never
 
-      - name: Upload macOS artifacts
-        if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos
-          path: mmdmanager/dist/*.{dmg,zip,blockmap}
-
-      - name: Upload Windows artifacts
-        if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: windows
-          path: mmdmanager/dist/*.{exe,blockmap}
-
-  release:
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Get version
-        id: version
-        run: echo "v=$(node -p "require('./mmdmanager/package.json').version")" >> $GITHUB_OUTPUT
-
-      - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: macos
-          path: dist
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: windows
-          path: dist
-
-      - name: Create Release
+      - name: Publish Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.v }}
-          name: MMDManager v${{ steps.version.outputs.v }}
-          files: dist/*
+          tag_name: v${{ steps.ver.outputs.v }}-${{ matrix.platform }}
+          name: MMDManager v${{ steps.ver.outputs.v }} (${{ matrix.platform }})
+          files: mmdmanager/dist/*
           draft: false
-          generate_release_notes: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MMDManager-${{ matrix.platform }}
+          path: mmdmanager/dist/*
