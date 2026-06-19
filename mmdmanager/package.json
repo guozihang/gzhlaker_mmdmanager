@@ -1,26 +1,52 @@
 {
-	"main":"index.html",
-	"name":"MMDManager",
-	"description":"MMDManager",
-	"version":"0.1.0",
-	"window": {   
-        "title": "demo",  
-        "icon": "icon.png",  
-        "toolbar": true,  
-        "resizable": true,  
-        "fullscreen": false,  
-        "show_in_taskbar": true,  
-        "frame": true,  
-        "position": "center",  
-        "width": 1487,  
-        "height": 967,  
-        "min_width": 400,  
-        "min_height": 300,     
-        "show": true,  
-        "show_in_taskbar":true,   
-        "kiosk": false  
-    }, 
-	"dependencies":{
+  "name": "MMDManager",
+  "version": "0.1.0",
+  "description": "MMDManager",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder --mac --win"
+  },
+  "devDependencies": {
+    "electron": "^42.4.1",
+    "electron-builder": "^26.0.0"
+  },
+  "build": {
+    "appId": "com.gzhlaker.mmdmanager",
+    "productName": "MMDManager",
+    "directories": {
+      "output": "dist"
     },
-    "chromium-args": "--ppapi-flash-path=PepperFlash/pepflashplayer.dll --ppapi-flash-version=32.0.0.255"
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "icon.png",
+      "css/**/*",
+      "js/**/*",
+      "data/**/*",
+      "software/**/*",
+      "project/**/*"
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.utilities"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
 }

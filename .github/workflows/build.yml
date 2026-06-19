@@ -1,0 +1,57 @@
+name: Build Electron App
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mmdmanager/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'mmdmanager/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        working-directory: mmdmanager
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Electron app
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run build
+
+      - name: Upload artifacts (macOS)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MMDManager-macOS
+          path: |
+            mmdmanager/dist/*.dmg
+            mmdmanager/dist/*.zip
+
+      - name: Upload artifacts (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: MMDManager-Windows
+          path: |
+            mmdmanager/dist/*.exe

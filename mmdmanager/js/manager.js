@@ -2,15 +2,15 @@ function PathManager() {
     throw new Error('This is a static class');
 }
 PathManager.dataFileName = 'data.json'
-PathManager.PROGRAMPATH = path.dirname(process.execPath);
-PathManager.DATAPATH = PathManager.PROGRAMPATH + '\\data\\';
-PathManager.SOFTPATH = PathManager.PROGRAMPATH + '\\software\\'
-PathManager.PROJECTPATH = PathManager.PROGRAMPATH + '\\project\\'
-PathManager.MODELPATH = PathManager.DATAPATH + 'Model\\';
-PathManager.MMEPATH = PathManager.DATAPATH + 'MME\\';
-PathManager.SCENEPATH = PathManager.DATAPATH + 'Scene\\';
-PathManager.VMDPATH = PathManager.DATAPATH + 'Vmd\\';
-PathManager.GAMEPATH = PathManager.DATAPATH + 'Game\\';
+PathManager.PROGRAMPATH = window.PROGRAMPATH;
+PathManager.DATAPATH = path.join(PathManager.PROGRAMPATH, 'data') + path.sep;
+PathManager.SOFTPATH = path.join(PathManager.PROGRAMPATH, 'software') + path.sep;
+PathManager.PROJECTPATH = path.join(PathManager.PROGRAMPATH, 'project') + path.sep;
+PathManager.MODELPATH = path.join(PathManager.DATAPATH, 'Model') + path.sep;
+PathManager.MMEPATH = path.join(PathManager.DATAPATH, 'MME') + path.sep;
+PathManager.SCENEPATH = path.join(PathManager.DATAPATH, 'Scene') + path.sep;
+PathManager.VMDPATH = path.join(PathManager.DATAPATH, 'Vmd') + path.sep;
+PathManager.GAMEPATH = path.join(PathManager.DATAPATH, 'Game') + path.sep;
 PathManager.getDataPath = function(){
     return PathManager.DATAPATH;
 }

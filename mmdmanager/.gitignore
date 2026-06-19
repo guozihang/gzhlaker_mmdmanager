@@ -1,3 +1,5 @@
+node_modules/
+dist/
 
 /data/*
 !/data/Model/
@@ -17,4 +19,4 @@
 /img/*
 /project/*
 /software/*
-
+useless/

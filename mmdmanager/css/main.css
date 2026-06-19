@@ -5,3 +5,22 @@ img {
     margin-right: auto;
     margin-left: auto;
 }
+
+#modelTarget {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    overflow: hidden;
+}
+
+#modelTargetF {
+    max-width: 100%;
+    overflow: hidden;
+}
+
+#modelTargetF canvas {
+    display: block;
+    max-width: 100%;
+    height: auto !important;
+}

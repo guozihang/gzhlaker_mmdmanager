@@ -1,4 +1,5 @@
 //Vue相关
+Vue.config.productionTip = false;
 router = new VueRouter({
     routes: routes,
 });

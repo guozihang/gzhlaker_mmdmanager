@@ -23,14 +23,14 @@ var GetDirsAllData = function(path){
              * 区别文件夹与文件
              */
             for (let mIndex = 0; mIndex < mLevel1All.length; mIndex++) {
-                if(fs.statSync(mLevel1All[mIndex].path).isDirectory()){
+                if(fs.statSync(mLevel1All[mIndex].path).isDirectory){
                     var temp = {}
                     temp.id = mLevel1Dir.length
                     temp.name = mLevel1All[mIndex].name
                     temp.path = mLevel1All[mIndex].path + '\\'
                     mLevel1Dir.push(temp)
                 }
-                else if(fs.statSync(mLevel1All[mIndex].path).isFile()){
+                else if(fs.statSync(mLevel1All[mIndex].path).isFile){
                     let temp = {}
                     temp.id = mLevel1File.length
                     temp.name = mLevel1All[mIndex].name

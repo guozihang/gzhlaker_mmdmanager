@@ -125,7 +125,12 @@ THREE.MMDLoader.prototype.loadVmd = function ( url, callback, onProgress, onErro
 
 	this.loadFileAsBuffer( url, function ( buffer ) {
 
-		callback( scope.parseVmd( buffer ) );
+		try {
+			callback( scope.parseVmd( buffer ) );
+		} catch ( e ) {
+			console.error( "VMD parse error:", e );
+			if ( onError ) onError( e );
+		}
 
 	}, onProgress, onError );
 

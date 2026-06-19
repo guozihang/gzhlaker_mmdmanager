@@ -1,3 +1,16 @@
+function longestCommonSubstring(a, b) {
+    if (!a || !b) return 0;
+    var lenA = a.length, lenB = b.length;
+    var maxLen = 0;
+    for (var i = 0; i < lenA; i++) {
+        for (var j = 0; j < lenB; j++) {
+            var k = 0;
+            while (i + k < lenA && j + k < lenB && a[i + k] === b[j + k]) k++;
+            if (k > maxLen) maxLen = k;
+        }
+    }
+    return maxLen / Math.max(lenA, lenB);
+}
 /*----------------------------------------------------
 # ● Init主界面的组件
 ----------------------------------------------------*/
@@ -6,22 +19,45 @@ var componentInit = {
     methods: {
         init: function () {
             /*----------------------
+            # ● 自动创建所需文件夹
+            ----------------------*/
+            var dirs = [
+                PathManager.DATAPATH,
+                PathManager.MODELPATH,
+                PathManager.SCENEPATH,
+                PathManager.MMEPATH,
+                PathManager.VMDPATH,
+                PathManager.GAMEPATH,
+                PathManager.SOFTPATH,
+                PathManager.PROJECTPATH
+            ];
+            for (var i = 0; i < dirs.length; i++) {
+                if (!fs.existsSync(dirs[i])) {
+                    fs.mkdirSync(dirs[i]);
+                }
+            }
+            // 自动创建空的 data.json
+            var dataJsonPath = PathManager.getDataFullPath();
+            if (!fs.existsSync(dataJsonPath)) {
+                fs.writeFile(dataJsonPath, '[]', function(){});
+            }
+            /*----------------------
             # ● 读取系统文件列表
             ----------------------*/
             window.fs.readFile(PathManager.getDataFullPath(), (err, data) => {
+                if (err || !data) return;
                 var rf = data.toString("utf8");
-                var rj = JSON.parse(data.toString("utf8"));
-                window.store.state.important = rj;
+                try { var rj = JSON.parse(rf); window.store.state.important = rj; } catch(e) {}
             });
             /*----------------------
             # ● 读取人物模型文件列表
             ----------------------*/
-            var models = fs.readdirSync(PathManager.MODELPATH);
+            var models = fs.existsSync(PathManager.MODELPATH) ? fs.readdirSync(PathManager.MODELPATH) : [];
             var temp = [];
             var d = {};
             for (let i = 0; i < models.length; i++) {
-                let d = { id: i, name: models[i], address: PathManager.MODELPATH + models[i] + "\\", models: [] };
-                if (fs.lstatSync(PathManager.MODELPATH + models[i]).isDirectory()) {
+                let d = { id: i, name: models[i], address: PathManager.MODELPATH + models[i] + "/", models: [] };
+                if (fs.lstatSync(PathManager.MODELPATH + models[i]).isDirectory) {
                     let childF = fs.readdirSync(d.address);
                     for (let j = 0; j < childF.length; j++) {
                         //console.log(window.path.extname(childF[j]).toLowerCase())
@@ -34,14 +70,14 @@ var componentInit = {
                         }
                     }
                 }
-                window.fs.exists(PathManager.MODELPATH + models[i] + "\\info.json", function (exists) {
-                    //console.log(PathManager.MODELPATH + models[i] + "\\info.json");
+                window.fs.exists(PathManager.MODELPATH + models[i] + "/info.json", function (exists) {
+                    //console.log(PathManager.MODELPATH + models[i] + "/info.json");
                     if (exists) {
-                        window.fs.readFile(PathManager.MODELPATH + models[i] + "\\info.json", (err, data) => {
+                        window.fs.readFile(PathManager.MODELPATH + models[i] + "/info.json", (err, data) => {
+                            if (err || !data) return;
                             var rf = data.toString("utf8");
-                            var rj = JSON.parse(data.toString("utf8"));
+                            try { var rj = JSON.parse(rf); d["info"] = rj; } catch(e) {}
                             //console.log(rj)
-                            d["info"] = rj;
                         });
                         d.type = "yes";
                     } else {
@@ -50,8 +86,8 @@ var componentInit = {
 
                     //console.log(exists ? "创建成功" : "创建失败");
                 });
-                window.fs.exists(PathManager.MODELPATH + models[i] + "\\image.png", function (exists) {
-                    //console.log(PathManager.MODELPATH + models[i] + "\\image.png");
+                window.fs.exists(PathManager.MODELPATH + models[i] + "/image.png", function (exists) {
+                    //console.log(PathManager.MODELPATH + models[i] + "/image.png");
                     if (exists) {
                         d.img = "yes";
                     } else {
@@ -66,20 +102,20 @@ var componentInit = {
             /*----------------------
             # ● 读取MME文件列表
             ----------------------*/
-            var mmes = fs.readdirSync(PathManager.MMEPATH);
+            var mmes = fs.existsSync(PathManager.MMEPATH) ? fs.readdirSync(PathManager.MMEPATH) : [];
             var temp = [];
             for (let i = 0; i < mmes.length; i++) {
-                temp.push({ id: i, name: mmes[i], address: PathManager.MMEPATH + mmes[i] + "\\" });
+                temp.push({ id: i, name: mmes[i], address: PathManager.MMEPATH + mmes[i] + "/" });
             }
             this.$store.state.data.mmes = temp;
             /*----------------------
             # ● 读取场景模型文件列表
             ----------------------*/
-            var scenes = fs.readdirSync(PathManager.SCENEPATH);
+            var scenes = fs.existsSync(PathManager.SCENEPATH) ? fs.readdirSync(PathManager.SCENEPATH) : [];
             var temp = [];
             for (let i = 0; i < scenes.length; i++) {
-                let d = { id: i, name: scenes[i], address: PathManager.SCENEPATH + scenes[i] + "\\", models: [] };
-                if (fs.lstatSync(PathManager.SCENEPATH + scenes[i]).isDirectory()) {
+                let d = { id: i, name: scenes[i], address: PathManager.SCENEPATH + scenes[i] + "/", models: [] };
+                if (fs.lstatSync(PathManager.SCENEPATH + scenes[i]).isDirectory) {
                     let childF = fs.readdirSync(d.address);
                     for (let j = 0; j < childF.length; j++) {
                         //console.log(window.path.extname(childF[j]).toLowerCase())
@@ -92,13 +128,13 @@ var componentInit = {
                         }
                     }
                 }
-                window.fs.exists(PathManager.SCENEPATH + scenes[i] + "\\info.json", function (exists) {
+                window.fs.exists(PathManager.SCENEPATH + scenes[i] + "/info.json", function (exists) {
                     if (exists) {
-                        window.fs.readFile(PathManager.SCENEPATH + scenes[i] + "\\info.json", (err, data) => {
+                        window.fs.readFile(PathManager.SCENEPATH + scenes[i] + "/info.json", (err, data) => {
+                            if (err || !data) return;
                             var rf = data.toString("utf8");
-                            var rj = JSON.parse(data.toString("utf8"));
+                            try { var rj = JSON.parse(rf); d["info"] = rj; } catch(e) {}
                             //console.log(rj)
-                            d["info"] = rj;
                         });
                         d.type = "yes";
                     } else {
@@ -107,7 +143,7 @@ var componentInit = {
 
                     //console.log(exists ? "创建成功" : "创建失败");
                 });
-                window.fs.exists(PathManager.SCENEPATH + scenes[i] + "\\image.png", function (exists) {
+                window.fs.exists(PathManager.SCENEPATH + scenes[i] + "/image.png", function (exists) {
                     if (exists) {
                         d.img = "yes";
                     } else {
@@ -123,20 +159,33 @@ var componentInit = {
             /*----------------------
             # ● 读取动作文件列表
             ----------------------*/
-            var vmds = fs.readdirSync(PathManager.VMDPATH);
+            var vmdEntries = fs.existsSync(PathManager.VMDPATH) ? fs.readdirSync(PathManager.VMDPATH) : [];
             var temp = [];
-            for (let i = 0; i < vmds.length; i++) {
-                temp.push({ id: i, name: vmds[i], address: PathManager.VMDPATH + vmds[i] + "\\" });
+            for (let i = 0; i < vmdEntries.length; i++) {
+                var entryPath = PathManager.VMDPATH + vmdEntries[i];
+                var d = { id: i, name: vmdEntries[i], address: PathManager.VMDPATH + vmdEntries[i] + "/", vmds: [] };
+                var entryStat = fs.lstatSync(entryPath);
+                if (entryStat.isFile && window.path.extname(vmdEntries[i]).toLowerCase() === ".vmd") {
+                    d.vmds.push(entryPath);
+                } else if (entryStat.isDirectory) {
+                    var subFiles = fs.readdirSync(entryPath + "/");
+                    for (let j = 0; j < subFiles.length; j++) {
+                        if (window.path.extname(subFiles[j]).toLowerCase() === ".vmd") {
+                            d.vmds.push(entryPath + "/" + subFiles[j]);
+                        }
+                    }
+                }
+                temp.push(d);
             }
             this.$store.state.data.vmds = temp;
             /*----------------------
             # ● 读取工程文件列表
             ----------------------*/
-            var project = fs.readdirSync(PathManager.PROJECTPATH);
+            var project = fs.existsSync(PathManager.PROJECTPATH) ? fs.readdirSync(PathManager.PROJECTPATH) : [];
             var temp = [];
             for (let i = 0; i < project.length; i++) {
                 if (window.path.extname(project[i]).toLowerCase() == ".pmm") {
-                    temp.push({ id: i, name: project[i], address: PathManager.PROJECTPATH + project[i] + "\\" });
+                    temp.push({ id: i, name: project[i], address: PathManager.PROJECTPATH + project[i] + "/" });
                 }
             }
             this.$store.state.data.project = temp;
@@ -144,16 +193,15 @@ var componentInit = {
             # ● 读取软件列表
             ----------------------*/
             window.fs.readFile(PathManager.SOFTPATH + "software.json", (err, data) => {
+                if (err || !data) return;
                 var rf = data.toString("utf8");
                 console.log(rf);
-                var rj = JSON.parse(rf.toString("utf8"));
+                try { var rj = JSON.parse(rf); window.store.state.software = rj; } catch(e) {}
                 console.log(rj);
-                window.store.state.software = rj;
             });
             /*----------------------
             # ● 进入主菜单
             ----------------------*/
-            window.gmenu = new GMenu();
             this.message("初始化完成");
             router.replace("/index");
         },
@@ -287,7 +335,7 @@ var componentIndex = {
     },
     methods: {
         open: function (address) {
-            window.child_process.exec("explorer.exe" + " " + address);
+            window.shell.openPath(address);
         },
         vip: function (data, type) {
             data.type = type;
@@ -311,7 +359,7 @@ var componentIndex = {
             });
         },
         copy: function (data) {
-            window.child_process.exec("clip").stdin.end(data);
+            window.clipboard.writeText(data);
         },
         isSubStr: function (item) {
             if (item.name.toLowerCase().indexOf(this.search.toLowerCase()) != -1) {
@@ -357,9 +405,10 @@ var componentIndex = {
                     window.loader.MMDLoader.loadModel(
                         path,
                         function (mmd) {
-                            console.log(mmd);
                             window.model = mmd;
                             window.scene.add(window.model);
+                            setupModel(mmd);
+                            resetCamera();
                         },
                         window.onProgress,
                         null
@@ -371,6 +420,8 @@ var componentIndex = {
                             console.log(x);
                             window.model = x;
                             window.scene.add(window.model);
+                            setupModel(x);
+                            resetCamera();
                         },
                         window.onProgress,
                         null
@@ -378,9 +429,49 @@ var componentIndex = {
                 }
                 this.showPath = path;
             } else {
+                resetCamera();
                 $("#modelButton").click();
             }
             $("#modelButton").click();
+        },
+        playVmd: function (vmdPath) {
+            if (!window.model) {
+                this.message("请先在人物模型中选择并加载模型");
+                return;
+            }
+            var self = this;
+            resetCamera();
+            $("#modelButton").click();
+            window.loader.MMDLoader.loadVmd(
+                vmdPath,
+                function (vmd) {
+                    // Fuzzy match VMD bone names to model bones
+                    var modelBones = window.model.geometry.bones;
+                    if (modelBones) {
+                        var modelNames = modelBones.map(function(b) { return b.name; });
+                        for (var i = 0; i < vmd.motions.length; i++) {
+                            var vName = vmd.motions[i].boneName;
+                            if (modelNames.indexOf(vName) !== -1) continue;
+                            // Find best match
+                            var best = null, bestScore = 0, bestIdx = -1;
+                            for (var j = 0; j < modelNames.length; j++) {
+                                var score = longestCommonSubstring(vName, modelNames[j]);
+                                if (score > bestScore) { bestScore = score; best = modelNames[j]; bestIdx = j; }
+                            }
+                            if (best && bestScore > 0.2) {
+                                vmd.motions[i].boneName = modelBones[bestIdx].name;
+                            }
+                        }
+                    }
+                    window.loader.MMDLoader.pourVmdIntoModel(window.model, vmd, "");
+                    playAnimation();
+                    self.message("动作已加载");
+                },
+                window.onProgress,
+                function (err) {
+                    self.message("加载失败");
+                }
+            );
         },
         message: function (info) {
             const h = this.$createElement;
@@ -388,7 +479,7 @@ var componentIndex = {
                 title: "消息",
                 dangerouslyUseHTMLString: true,
                 duration: 800,
-                message: "<div><strong>" + info + "</strong></div>" + '<img src="./image/happy.gif"></img>',
+                message: "<div><strong>" + info + "</strong></div>",
             });
         },
     },
@@ -431,7 +522,7 @@ var componentProject = {
     },
     methods: {
         open: function (address) {
-            window.child_process.exec("explorer.exe" + " " + address);
+            window.shell.openPath(address);
         },
         isSubStr: function (item) {
             if (item.name.toLowerCase().indexOf(this.search.toLowerCase()) != -1) {

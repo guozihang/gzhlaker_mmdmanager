@@ -4,6 +4,7 @@
     <title>MMDManager</title>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data:;">
     <link rel="stylesheet" type="text/css" href="css/animate.css">
     <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
     <link rel="stylesheet" type="text/css" href="css/element.css">
@@ -138,7 +139,7 @@
                         <!--######################### 模型 #########################-->
                         <el-table-column prop="models" >
                             <div slot-scope="scope">
-                                <el-button size="mini" circle v-for="item in scope.row.models" @click="updateModel(item)">模</el-button>
+                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)">模</el-button>
                             </div>
                         </el-table-column>
                         <!--######################### 收藏 #########################-->
@@ -219,7 +220,7 @@
                         </el-table-column>
                         <el-table-column prop="models" >
                             <div slot-scope="scope">
-                                <el-button size="mini" circle v-for="item in scope.row.models" @click="updateModel(item)">模</el-button>
+                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)">模</el-button>
                             </div>
                         </el-table-column>
                         <el-table-column width="60">
@@ -382,6 +383,12 @@
                                 </div>
                             </div>
                         </el-table-column>
+                        <!--######################### 动作播放 #########################-->
+                        <el-table-column prop="vmds">
+                            <div slot-scope="scope">
+                                <el-button size="mini" circle v-for="item in scope.row.vmds" :key="item" @click="playVmd(item)">动</el-button>
+                            </div>
+                        </el-table-column>
                         <!--######################### 收藏 #########################-->
                         <el-table-column width="60">
                             <div slot-scope="scope">
@@ -465,7 +472,7 @@
                         <!--######################### 模型 #########################-->
                         <el-table-column prop="models" >
                             <div slot-scope="scope">
-                                <el-button size="mini" circle v-for="item in scope.row.models" @click="updateModel(item)">模</el-button>
+                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)">模</el-button>
                             </div>
                         </el-table-column>
                         <!--######################### 删除 #########################-->
@@ -567,15 +574,15 @@
 <script type="text/javascript" src="js/lib/vue-router.js"></script>
 <script type="text/javascript" src="js/lib/vuex.js"></script>
 <script type="text/javascript" src="js/lib/element.js"></script>
-<script type="text/javascript" src="js/lib/three.js"></script>
 <script type="text/javascript" src="js/lib/ammo.js"></script>
+<script type="text/javascript" src="js/lib/three.js"></script>
 <script type="text/javascript" src="js/lib/controls/OrbitControls.js"></script>
 <script type="text/javascript" src="js/lib/effects/OutlineEffect.js"></script>
+<script type="text/javascript" src="js/lib/animation/CCDIKSolver.js"></script>
 <script type="text/javascript" src="js/lib/loader/MMDLoader.js"></script>
 <script type="text/javascript" src="js/lib/loader/XLoader.js"></script>
 <script type="text/javascript" src="js/lib/loader/TGALoader.js"></script>
-<script type="text/javascript" src="js/lib/parser/mmdparser.min.js"></script>
-
+<script type="text/javascript" src="js/lib/parser/mmdparser.js"></script>
 
 <script type="text/javascript" src="js/import.js"></script>
 <script type="text/javascript" src="js/utils.js"></script>
@@ -583,7 +590,6 @@
 <script type="text/javascript" src="js/model.js"></script>
 <script type="text/javascript" src="js/components.js"></script>
 <script type="text/javascript" src="js/main.js"></script>
-<script type="text/javascript" src="js/menu.js"></script>
 <script type="text/javascript" src="js/show.js"></script>
 
 
