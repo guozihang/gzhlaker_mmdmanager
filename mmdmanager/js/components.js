@@ -32,8 +32,12 @@ var componentInit = {
                 PathManager.PROJECTPATH
             ];
             for (var i = 0; i < dirs.length; i++) {
-                if (!fs.existsSync(dirs[i])) {
-                    fs.mkdirSync(dirs[i]);
+                try {
+                    if (!fs.existsSync(dirs[i])) {
+                        fs.mkdirSync(dirs[i], { recursive: true });
+                    }
+                } catch(e) {
+                    console.log("Dir create failed:", dirs[i], e.message);
                 }
             }
             // 自动创建空的 data.json
