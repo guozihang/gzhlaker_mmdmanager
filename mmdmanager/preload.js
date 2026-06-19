@@ -3,8 +3,11 @@ const fs = require('fs');
 const pathMod = require('path');
 const processMod = require('process');
 
-// App root directory — __dirname in preload is the project root
-const PROGRAMPATH = __dirname;
+// App root directory for data storage
+// macOS packaged: ~/Documents/mmdmanager/
+// Windows packaged: next to exe /mmdmanager_data/
+// Dev mode: project root
+const PROGRAMPATH = process.env.MMD_DATA_PATH || __dirname;
 
 // Wrap stat objects to convert methods to plain boolean properties
 function wrapStats(stats) {

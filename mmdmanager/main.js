@@ -145,6 +145,21 @@ function buildMenu() {
     Menu.setApplicationMenu(menu);
 }
 
+// Determine data directory based on platform
+const isPackaged = app.isPackaged;
+let dataPath;
+if (isPackaged) {
+    if (process.platform === 'darwin') {
+        dataPath = path.join(app.getPath('documents'), 'mmdmanager');
+    } else {
+        // Windows: next to the executable
+        dataPath = path.join(path.dirname(app.getPath('exe')), 'mmdmanager_data');
+    }
+} else {
+    dataPath = __dirname;
+}
+process.env.MMD_DATA_PATH = dataPath;
+
 function createWindow() {
     mainWindow = new BrowserWindow({
         title: 'demo',

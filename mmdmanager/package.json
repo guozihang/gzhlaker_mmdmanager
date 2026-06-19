@@ -1,6 +1,6 @@
 {
   "name": "MMDManager",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "MMDManager",
   "author": "guozihang",
   "repository": "https://github.com/guozihang/gzhlaker_tool",
@@ -49,7 +49,7 @@
     },
     "publish": {
       "provider": "github",
-      "releaseType": "draft"
+      "releaseType": "release"
     }
   }
 }
