@@ -9,7 +9,6 @@ window.store = new Vuex.Store({
 		software: [],
 		settings: {
 			dataPath: '',
-			dataFileName: 'data.json',
 			defaultModelPath: ''
 		}
   	},

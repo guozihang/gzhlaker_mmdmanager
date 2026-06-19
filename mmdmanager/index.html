@@ -492,9 +492,6 @@
                                 </template>
                             </el-input>
                         </el-form-item>
-                        <el-form-item label="数据文件名">
-                            <el-input v-model="settings.dataFileName" placeholder="data.json" style="width:200px;"></el-input>
-                        </el-form-item>
                         <el-form-item label="默认模型路径">
                             <el-input v-model="settings.defaultModelPath" placeholder="点击VMD时自动加载的模型路径">
                                 <template slot="append">
@@ -507,10 +504,6 @@
                             <el-button @click="resetSettings">恢复默认</el-button>
                         </el-form-item>
                     </el-form>
-                    <el-divider></el-divider>
-                    <p style="color:#999; font-size:12px;">
-                        保存后需<a href="javascript:location.reload()">刷新</a>页面生效
-                    </p>
                 </el-tab-pane>
             </el-tabs>
         </div>

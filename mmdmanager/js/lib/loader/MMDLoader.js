@@ -1512,7 +1512,6 @@ THREE.MMDLoader.prototype.createMesh = function ( model, texturePath, onProgress
 	try{
 		loadingLog += "网格初始化完成"+"</br>";
 		$("#progressLog").html(loadingLog);
-		debugger
 	}catch(e){ console.log(e); }
 
 
@@ -2494,8 +2493,6 @@ THREE.MMDHelper.prototype = {
 			loadingLog += tempstr+"</br>";
 
 			$("#progressLog").html(loadingLog);
-	        
-			debugger
 		}catch(e){ console.log(e); }
 		
 

@@ -4,15 +4,21 @@ const pathMod = require('path');
 const processMod = require('process');
 
 // App root directory for data storage
-// Packaged: platform-appropriate persistent location, dev: __dirname
+// Windows: %APPDATA%/mmdmanager, macOS: ~/.config/mmdmanager
+function getDefaultDataPath() {
+    if (process.platform === 'win32') {
+        return pathMod.join(process.env.APPDATA, 'mmdmanager');
+    } else {
+        return pathMod.join(process.env.HOME, '.config', 'mmdmanager');
+    }
+}
 const isPackaged = __dirname.indexOf('.asar') !== -1;
+const CONFIGPATH = getDefaultDataPath();
 let PROGRAMPATH;
 if (isPackaged) {
     if (process.platform === 'win32') {
-        // Windows: use AppData (portable extracts to temp, which gets cleared)
-        PROGRAMPATH = pathMod.join(process.env.APPDATA, 'mmdmanager');
+        PROGRAMPATH = CONFIGPATH;
     } else {
-        // macOS: exe directory
         PROGRAMPATH = pathMod.dirname(process.execPath);
     }
 } else {
@@ -51,6 +57,7 @@ function wrapStats(stats) {
 }
 
 contextBridge.exposeInMainWorld('PROGRAMPATH', PROGRAMPATH);
+contextBridge.exposeInMainWorld('CONFIGPATH', CONFIGPATH);
 
 contextBridge.exposeInMainWorld('fs', {
     readFile: (filePath, options, callback) => {
@@ -58,10 +65,22 @@ contextBridge.exposeInMainWorld('fs', {
             callback = options;
             options = undefined;
         }
-        return fs.readFile(filePath, options, callback);
+        return fs.readFile(filePath, options || 'utf8', function(err, data) {
+            if (err) return callback(err);
+            if (typeof data === 'string') return callback(null, data);
+            callback(null, Buffer.isBuffer(data) ? data.toString('utf8') : data);
+        });
+    },
+    readFileSync: (filePath, options) => {
+        var data = fs.readFileSync(filePath, options);
+        if (typeof data === 'string') return data;
+        return Buffer.isBuffer(data) ? data.toString('utf8') : data;
     },
     writeFile: (filePath, data, callback) => {
         return fs.writeFile(filePath, data, callback);
+    },
+    writeFileSync: (filePath, data, options) => {
+        return fs.writeFileSync(filePath, data, options);
     },
     exists: (filePath, callback) => {
         return fs.exists(filePath, callback);

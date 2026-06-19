@@ -3,6 +3,7 @@ function PathManager() {
 }
 PathManager.dataFileName = 'data.json'
 PathManager.PROGRAMPATH = window.PROGRAMPATH;
+PathManager.CONFIGPATH = window.CONFIGPATH || window.PROGRAMPATH;
 PathManager.DATAPATH = path.join(PathManager.PROGRAMPATH, 'data') + path.sep;
 PathManager.SOFTPATH = path.join(PathManager.PROGRAMPATH, 'software') + path.sep;
 PathManager.PROJECTPATH = path.join(PathManager.PROGRAMPATH, 'project') + path.sep;
@@ -15,7 +16,7 @@ PathManager.getDataPath = function(){
     return PathManager.DATAPATH;
 }
 PathManager.getDataFullPath = function(){
-    return PathManager.DATAPATH + PathManager.dataFileName;
+    return PathManager.CONFIGPATH + path.sep + PathManager.dataFileName;
 }
 
 

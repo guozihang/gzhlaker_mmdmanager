@@ -19,6 +19,46 @@ var componentInit = {
     methods: {
         init: function () {
             /*----------------------
+            # ● 读取配置文件（优先，影响后续路径）
+            ----------------------*/
+            var applySettings = function(cfg) {
+                if (cfg && cfg.dataPath && cfg.dataPath !== PathManager.PROGRAMPATH) {
+                    PathManager.PROGRAMPATH = cfg.dataPath;
+                    PathManager.DATAPATH = path.join(cfg.dataPath, 'data') + path.sep;
+                    PathManager.SOFTPATH = path.join(cfg.dataPath, 'software') + path.sep;
+                    PathManager.PROJECTPATH = path.join(cfg.dataPath, 'project') + path.sep;
+                    PathManager.MODELPATH = path.join(PathManager.DATAPATH, 'Model') + path.sep;
+                    PathManager.MMEPATH = path.join(PathManager.DATAPATH, 'MME') + path.sep;
+                    PathManager.SCENEPATH = path.join(PathManager.DATAPATH, 'Scene') + path.sep;
+                    PathManager.VMDPATH = path.join(PathManager.DATAPATH, 'Vmd') + path.sep;
+                    PathManager.GAMEPATH = path.join(PathManager.DATAPATH, 'Game') + path.sep;
+                }
+                if (cfg && cfg.defaultModelPath !== undefined) {
+                    this.$store.state.settings.defaultModelPath = cfg.defaultModelPath;
+                }
+            }.bind(this);
+            // Phase 1: create config directory and read data.json
+            var configDir = PathManager.CONFIGPATH;
+            console.log("Config dir:", configDir);
+            console.log("CONFIGPATH:", PathManager.CONFIGPATH);
+            console.log("getDataFullPath:", PathManager.getDataFullPath());
+            if (!fs.existsSync(configDir)) {
+                console.log("Creating config dir:", configDir);
+                try { fs.mkdirSync(configDir, { recursive: true }); } catch(e) { console.log("mkdir failed:", e); }
+            }
+            var dataJsonPath = PathManager.getDataFullPath();
+            console.log("data.json path:", dataJsonPath, "exists:", fs.existsSync(dataJsonPath));
+            if (fs.existsSync(dataJsonPath)) {
+                try {
+                    var raw = JSON.parse(fs.readFileSync(dataJsonPath).toString('utf8'));
+                    if (raw.settings) {
+                        applySettings(raw.settings);
+                        this.$store.state.settings = raw.settings;
+                    }
+                } catch(e) {}
+            }
+            this.$store.state.settings.dataPath = this.$store.state.settings.dataPath || PathManager.PROGRAMPATH;
+            /*----------------------
             # ● 自动创建所需文件夹
             ----------------------*/
             var dirs = [
@@ -36,52 +76,27 @@ var componentInit = {
                     if (!fs.existsSync(dirs[i])) {
                         fs.mkdirSync(dirs[i], { recursive: true });
                     }
-                } catch(e) {
-                    console.log("Dir create failed:", dirs[i], e.message);
-                }
+                } catch(e) {}
             }
-            // 自动创建空的 data.json
-            var dataJsonPath = PathManager.getDataFullPath();
+            // Ensure data.json exists
             if (!fs.existsSync(dataJsonPath)) {
-                fs.writeFile(dataJsonPath, '[]', function(){});
-            }
-            /*----------------------
-            # ● 读取配置文件
-            ----------------------*/
-            var settingsPath = PathManager.PROGRAMPATH + '/mmdmanager_settings.json';
-            var applySettings = function(cfg) {
-                if (cfg.dataPath && cfg.dataPath !== PathManager.PROGRAMPATH) {
-                    PathManager.PROGRAMPATH = cfg.dataPath;
-                    PathManager.DATAPATH = path.join(cfg.dataPath, 'data') + path.sep;
-                    PathManager.SOFTPATH = path.join(cfg.dataPath, 'software') + path.sep;
-                    PathManager.PROJECTPATH = path.join(cfg.dataPath, 'project') + path.sep;
-                    PathManager.MODELPATH = path.join(PathManager.DATAPATH, 'Model') + path.sep;
-                    PathManager.MMEPATH = path.join(PathManager.DATAPATH, 'MME') + path.sep;
-                    PathManager.SCENEPATH = path.join(PathManager.DATAPATH, 'Scene') + path.sep;
-                    PathManager.VMDPATH = path.join(PathManager.DATAPATH, 'Vmd') + path.sep;
-                    PathManager.GAMEPATH = path.join(PathManager.DATAPATH, 'Game') + path.sep;
+                console.log("Creating new data.json at:", dataJsonPath);
+                try {
+                    fs.writeFileSync(dataJsonPath, JSON.stringify({ important: [], settings: this.$store.state.settings }));
+                    console.log("data.json created successfully");
+                } catch(e) {
+                    console.log("data.json create failed:", e);
                 }
-                if (cfg.dataFileName) PathManager.dataFileName = cfg.dataFileName;
-            };
-            if (fs.existsSync(settingsPath)) {
-                window.fs.readFile(settingsPath, function(err, data) {
-                    if (err || !data) return;
-                    try {
-                        var cfg = JSON.parse(data.toString('utf8'));
-                        this.$store.state.settings = cfg;
-                        applySettings(cfg);
-                    } catch(e) {}
-                }.bind(this));
             }
-            // Set default settings value
-            this.$store.state.settings.dataPath = this.$store.state.settings.dataPath || PathManager.PROGRAMPATH;
             /*----------------------
             # ● 读取系统文件列表
             ----------------------*/
-            window.fs.readFile(PathManager.getDataFullPath(), (err, data) => {
+            window.fs.readFile(dataJsonPath, (err, data) => {
+                console.log("Read data.json:", err, !!data);
                 if (err || !data) return;
                 var rf = data.toString("utf8");
-                try { var rj = JSON.parse(rf); window.store.state.important = rj; } catch(e) {}
+                console.log("data.json content:", rf);
+                try { var rj = JSON.parse(rf); window.store.state.important = Array.isArray(rj) ? rj : (rj.important || []); } catch(e) {}
             });
             /*----------------------
             # ● 读取人物模型文件列表
@@ -395,7 +410,11 @@ var componentIndex = {
             this.save();
         },
         save: function () {
-            window.fs.writeFile(PathManager.getDataFullPath(), JSON.stringify(this.$store.state.important), (err, data) => {
+            var data = {
+                important: this.$store.state.important,
+                settings: this.$store.state.settings
+            };
+            window.fs.writeFile(PathManager.getDataFullPath(), JSON.stringify(data), (err) => {
                 if (err) throw err;
                 this.message("保存成功");
             });
@@ -425,10 +444,10 @@ var componentIndex = {
             return this.isSubStr(name, search);
         },
         getModelsNum: function () {
-            return this.models.length;
+            return this.models ? this.models.length : 0;
         },
         getScenesNum: function () {
-            return this.scenes.length;
+            return this.scenes ? this.scenes.length : 0;
         },
         changeTag: function (item) {
             this.tag = item;
@@ -560,20 +579,39 @@ var componentIndex = {
         },
         saveSettings: function() {
             var self = this;
-            var settingsPath = PathManager.PROGRAMPATH + '/mmdmanager_settings.json';
-            var data = JSON.stringify(self.settings, null, 2);
-            window.fs.writeFile(settingsPath, data, function(err) {
-                if (err) {
-                    self.message("保存失败: " + err.message);
-                } else {
-                    self.message("配置已保存，刷新页面后生效");
+            var dataPath = PathManager.getDataFullPath();
+            // Read existing data.json to preserve important array
+            var existing = { important: self.important };
+            if (fs.existsSync(dataPath)) {
+                try {
+                    existing = JSON.parse(fs.readFileSync(dataPath).toString('utf8'));
+                } catch(e) {}
+            }
+            existing.settings = self.settings;
+            try {
+                fs.writeFileSync(dataPath, JSON.stringify(existing, null, 2));
+                // Apply immediately — no refresh needed
+                if (self.settings.dataPath) {
+                    PathManager.PROGRAMPATH = self.settings.dataPath;
+                    // Update data dirs for current session
+                    var dirs = [
+                        path.join(self.settings.dataPath, 'data'),
+                        path.join(self.settings.dataPath, 'software'),
+                        path.join(self.settings.dataPath, 'project')
+                    ];
+                    for (var i = 0; i < dirs.length; i++) {
+                        try { if (!fs.existsSync(dirs[i])) fs.mkdirSync(dirs[i], { recursive: true }); } catch(e) {}
+                    }
                 }
-            });
+                self.message("配置已保存");
+            } catch(e) {
+                self.message("保存失败: " + e.message);
+            }
         },
         resetSettings: function() {
             var defaults = {
                 dataPath: PathManager.PROGRAMPATH,
-                dataFileName: 'data.json'
+                defaultModelPath: ''
             };
             this.settings = defaults;
             this.message("已恢复默认配置，保存后刷新生效");
@@ -643,7 +681,7 @@ var componentProject = {
             }
         },
         getProjectNum: function () {
-            return this.project.length;
+            return this.project ? this.project.length : 0;
         },
     },
 };
