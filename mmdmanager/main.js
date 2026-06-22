@@ -1,5 +1,10 @@
 const { app, BrowserWindow, Menu, ipcMain, clipboard, shell, dialog } = require('electron');
+
+// Must be set before app.whenReady() for macOS menu bar name
+app.name = 'MMDManager';
+
 const path = require('path');
+const fs = require('fs');
 const { spawn } = require('child_process');
 
 // Path constants matching the original PathManager
@@ -28,14 +33,36 @@ function spawnApp(exePath) {
     }
 }
 
+function scanSoftware() {
+    const items = [];
+    if (!fs.existsSync(SOFTPATH)) return items;
+    const dirs = fs.readdirSync(SOFTPATH);
+    for (const dir of dirs) {
+        const dirPath = path.join(SOFTPATH, dir);
+        let stat;
+        try { stat = fs.statSync(dirPath); } catch (_) { continue; }
+        if (!stat.isDirectory()) continue;
+        const files = fs.readdirSync(dirPath);
+        for (const file of files) {
+            if (path.extname(file).toLowerCase() === '.exe') {
+                const exePath = path.join(dirPath, file);
+                items.push({
+                    label: dir,  // Use folder name as the menu label
+                    click: () => spawnApp(exePath)
+                });
+                break; // Only take the first .exe per folder
+            }
+        }
+    }
+    return items;
+}
+
 function buildMenu() {
+    const softwareItems = scanSoftware();
+
     const template = [
         {
-            label: 'Config',
-            submenu: []
-        },
-        {
-            label: 'Page',
+            label: 'MMDManager',
             submenu: [
                 {
                     label: 'Models',
@@ -50,93 +77,30 @@ function buildMenu() {
                     click: () => {
                         if (mainWindow) mainWindow.webContents.send('menu:navigate', '/project');
                     }
-                }
-            ]
-        },
-        {
-            label: 'Dir',
-            submenu: [
+                },
+                { type: 'separator' },
                 {
-                    label: 'Models',
+                    label: 'Models 文件夹',
                     click: () => shell.openPath(MODELPATH)
                 },
                 {
-                    label: 'Scene',
+                    label: 'Scene 文件夹',
                     click: () => shell.openPath(SCENEPATH)
                 },
                 {
-                    label: 'VMD',
+                    label: 'VMD 文件夹',
                     click: () => shell.openPath(VMDPATH)
                 },
                 {
-                    label: 'MME',
+                    label: 'MME 文件夹',
                     click: () => shell.openPath(MMEPATH)
                 },
                 {
-                    label: 'BridgeOut',
+                    label: 'BridgeOut 文件夹',
                     click: () => shell.openPath(path.join(SOFTPATH, 'MikuMikuDance_V926_Bridge', 'out'))
-                }
-            ]
-        },
-        {
-            label: 'Software',
-            submenu: [
-                {
-                    label: 'Effekseer15Beta4',
-                    click: () => spawnApp(path.join(SOFTPATH, 'Effekseer15Beta4', 'Effekseer.exe'))
                 },
-                {
-                    label: 'MikuMikuDance_V739',
-                    click: () => spawnApp(path.join(SOFTPATH, 'MikuMikuDance_V739', 'MikuMikuDance.CHS.exe'))
-                },
-                {
-                    label: 'MikuMikuDance_V926',
-                    click: () => spawnApp(path.join(SOFTPATH, 'MikuMikuDance_V926', 'MikuMikuDance.exe'))
-                },
-                {
-                    label: 'MikuMikuDance_V926_Bridge',
-                    click: () => spawnApp(path.join(SOFTPATH, 'MikuMikuDance_V926_Bridge', 'MikuMikuDance.exe'))
-                },
-                {
-                    label: 'MikuMikuDance_V926_BridgeRT',
-                    click: () => spawnApp(path.join(SOFTPATH, 'MikuMikuDance_V926_BridgeRT', 'MikuMikuDance.exe'))
-                },
-                {
-                    label: 'MikumikuDance_V931',
-                    click: () => spawnApp(path.join(SOFTPATH, 'MikumikuDance_V931', 'MikuMikuDance.exe'))
-                },
-                {
-                    label: 'MikuMikuDance_V931_DX11',
-                    click: () => spawnApp(path.join(SOFTPATH, 'MikuMikuDance_V931_DX11', 'MikuMikuDance.exe'))
-                },
-                {
-                    label: 'MikuMikuDance_v932',
-                    click: () => spawnApp(path.join(SOFTPATH, 'MikuMikuDance_v932', 'MikuMikuDance.exe'))
-                },
-                {
-                    label: 'PMM_V2_Path_Editor',
-                    click: () => shell.openPath(path.join(SOFTPATH, 'PMM_V2_Path_Editor'))
-                },
-                {
-                    label: 'PmxEditor_0254e_CHS',
-                    click: () => spawnApp(path.join(SOFTPATH, 'PmxEditor_0254e_CHS', 'PmxEditor_x64.exe'))
-                },
-                {
-                    label: 'PmxEditor_0254f_EN',
-                    click: () => spawnApp(path.join(SOFTPATH, 'PmxEditor_0254f_EN', 'PmxEditor_x64.exe'))
-                },
-                {
-                    label: 'RayMatirialControler',
-                    click: () => spawnApp(path.join(SOFTPATH, 'RayMatirial', 'RayMatirialControler.exe'))
-                },
-                {
-                    label: 'Metasequoia_472_64',
-                    click: () => spawnApp(path.join(SOFTPATH, 'Metasequoia_472_64', 'Metaseq.exe'))
-                },
-                {
-                    label: 'MMEdit_bin_0.1.0.0',
-                    click: () => spawnApp(path.join(SOFTPATH, 'MMEdit_bin_0.1.0.0', 'MMEdit.exe'))
-                }
+                { type: 'separator' },
+                ...softwareItems
             ]
         }
     ];
@@ -147,7 +111,7 @@ function buildMenu() {
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        title: 'demo',
+        title: 'MMDManager',
         icon: path.join(__dirname, 'icon.png'),
         width: 1487,
         height: 967,
@@ -228,6 +192,50 @@ ipcMain.handle('child-process:spawn', (event, { exePath, args, options }) => {
     }
 });
 
+ipcMain.handle('export:toMmd', async (event, { mmdPath, modelPath }) => {
+    try {
+        const proc = spawn(mmdPath, [modelPath], {
+            detached: true,
+            stdio: 'ignore',
+            cwd: path.dirname(mmdPath)
+        });
+        proc.unref();
+        return { success: true };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
+ipcMain.handle('fs:copyFolder', async (event, { src, dest }) => {
+    try {
+        var srcStat = fs.statSync(src);
+        var finalDest = dest;
+
+        if (srcStat.isFile()) {
+            // Single file: create dest folder, copy file into it
+            if (fs.existsSync(dest)) {
+                var base = dest, counter = 1;
+                while (fs.existsSync(base + '_' + counter)) { counter++; }
+                finalDest = base + '_' + counter;
+            }
+            fs.mkdirSync(finalDest, { recursive: true });
+            var fileName = path.basename(src);
+            fs.copyFileSync(src, path.join(finalDest, fileName));
+        } else {
+            // Directory: copy recursively
+            if (fs.existsSync(dest)) {
+                var base2 = dest, counter2 = 1;
+                while (fs.existsSync(base2 + '_' + counter2)) { counter2++; }
+                finalDest = base2 + '_' + counter2;
+            }
+            fs.cpSync(src, finalDest, { recursive: true });
+        }
+        return { success: true, dest: finalDest };
+    } catch (err) {
+        return { success: false, error: err.message };
+    }
+});
+
 // Pass all path constants to renderer
 ipcMain.handle('get-app-paths', () => {
     return {
@@ -247,6 +255,7 @@ ipcMain.handle('get-app-paths', () => {
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 app.commandLine.appendSwitch('enable-webgl');
 app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('disable-features', 'SkiaOutputDeviceBufferQueue');
 
 app.whenReady().then(createWindow);
 

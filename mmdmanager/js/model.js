@@ -9,7 +9,16 @@ window.store = new Vuex.Store({
 		software: [],
 		settings: {
 			dataPath: '',
-			defaultModelPath: ''
+			defaultModelPath: '',
+			mmdPath: '',
+			preview: {
+				ambientColor: '#666666',
+				directionalColor: '#887766',
+				showAxis: true,
+				autoRotate: true,
+				cameraFov: 45,
+				dualModel: false
+			}
 		}
   	},
   	mutations: {

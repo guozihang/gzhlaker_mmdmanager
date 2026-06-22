@@ -106,6 +106,7 @@ contextBridge.exposeInMainWorld('fs', {
 
 contextBridge.exposeInMainWorld('path', {
     extname: (p) => pathMod.extname(p),
+    basename: (p) => pathMod.basename(p),
     dirname: (p) => pathMod.dirname(p),
     join: (...args) => pathMod.join(...args),
     sep: pathMod.sep
@@ -139,10 +140,117 @@ contextBridge.exposeInMainWorld('shell', {
     openPath: (folderPath) => ipcRenderer.invoke('shell:openPath', folderPath)
 });
 
+contextBridge.exposeInMainWorld('exportToMmd', (opts) => {
+    return ipcRenderer.invoke('export:toMmd', opts);
+});
+
+contextBridge.exposeInMainWorld('copyFolder', (src, dest) => {
+    return ipcRenderer.invoke('fs:copyFolder', { src, dest });
+});
+
 // Listen for menu navigation commands from main process
 ipcRenderer.on('menu:navigate', (event, route) => {
-    // The Vue router is exposed as window.app.$router
-    if (window.app && window.app.$router) {
-        window.app.$router.replace(route);
+    window.postMessage({ type: 'menu:navigate', route: route }, '*');
+});
+
+// Intercept file drops — File.path works on Windows but not macOS.
+// On macOS we read via webkitGetAsEntry and write to a temp directory.
+document.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+});
+document.addEventListener('drop', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var items = e.dataTransfer.items;
+    if (!items || items.length === 0) return;
+
+    var droppedPath = e.dataTransfer.files[0].path;
+    if (droppedPath) {
+        // Windows / Linux: File.path works
+        window.postMessage({ type: 'file:drop', path: droppedPath }, '*');
+        return;
     }
+
+    // macOS: webkitGetAsEntry tree walk
+    var entry = items[0].webkitGetAsEntry();
+    if (!entry) return;
+
+    // For single files, make a folder named after the file (without extension)
+    var folderName = entry.name;
+    if (entry.isFile) {
+        folderName = entry.name.replace(/\.[^.]+$/, '');
+    }
+    var destDir = pathMod.join(PROGRAMPATH, '.temp', folderName);
+    try { fs.rmSync(destDir, { recursive: true, force: true }); } catch (_) {}
+    fs.mkdirSync(destDir, { recursive: true });
+
+    var pending = [];
+
+    function copyEntry(ent, targetDir) {
+        if (ent.isFile) {
+            return new Promise(function (resolve, reject) {
+                ent.file(function (file) {
+                    var reader = new FileReader();
+                    reader.onload = function () {
+                        try {
+                            fs.writeFileSync(pathMod.join(targetDir, file.name), Buffer.from(reader.result));
+                            resolve();
+                        } catch (err) { reject(err); }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            });
+        } else if (ent.isDirectory) {
+            var subDir = pathMod.join(targetDir, ent.name);
+            fs.mkdirSync(subDir, { recursive: true });
+            var dirReader = ent.createReader();
+            return new Promise(function (resolve) {
+                var childPromises = [];
+                function readBatch() {
+                    dirReader.readEntries(function (entries) {
+                        if (entries.length === 0) {
+                            Promise.all(childPromises).then(resolve);
+                            return;
+                        }
+                        for (var i = 0; i < entries.length; i++) {
+                            childPromises.push(copyEntry(entries[i], subDir));
+                        }
+                        readBatch();
+                    });
+                }
+                readBatch();
+            });
+        }
+    }
+
+    if (entry.isFile) {
+        pending.push(copyEntry(entry, destDir));
+    } else {
+        // Directory: copy contents into destDir
+        pending.push(new Promise(function (resolve) {
+            var childPromises = [];
+            var dirReader = entry.createReader();
+            function readBatch() {
+                dirReader.readEntries(function (entries) {
+                    if (entries.length === 0) {
+                        Promise.all(childPromises).then(resolve);
+                        return;
+                    }
+                    for (var i = 0; i < entries.length; i++) {
+                        childPromises.push(copyEntry(entries[i], destDir));
+                    }
+                    readBatch();
+                });
+            }
+            readBatch();
+        }));
+    }
+
+    Promise.all(pending).then(function () {
+        window.postMessage({ type: 'file:drop', path: destDir }, '*');
+    }).catch(function (err) {
+        console.error('[preload] copy error:', err);
+    });
 });

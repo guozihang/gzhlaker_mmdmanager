@@ -884,7 +884,7 @@ THREE.MMDLoader.prototype.createMesh = function ( model, texturePath, onProgress
 		var textureLoader = new THREE.TextureLoader( scope.manager );
 		var tgaLoader = new THREE.TGALoader( scope.manager );
 		var canvas = document.createElement( 'canvas' );
-		var context = canvas.getContext( '2d' );
+		var context = canvas.getContext( '2d', { willReadFrequently: true } );
 		var offset = 0;
 		var materialParams = [];
 
@@ -956,6 +956,8 @@ THREE.MMDLoader.prototype.createMesh = function ( model, texturePath, onProgress
 				t.flipY = false;
 				t.wrapS = THREE.RepeatWrapping;
 				t.wrapT = THREE.RepeatWrapping;
+				t.minFilter = THREE.LinearFilter;
+				t.generateMipmaps = false;
 
 				for ( var i = 0; i < texture.readyCallbacks.length; i++ ) {
 
@@ -966,6 +968,10 @@ THREE.MMDLoader.prototype.createMesh = function ( model, texturePath, onProgress
 				delete texture.readyCallbacks;
 
 			}, onProgress, onError );
+
+			// Set NPOT-safe defaults immediately, before image is uploaded to GPU
+			texture.minFilter = THREE.LinearFilter;
+			texture.generateMipmaps = false;
 
 			if ( params.sphericalReflectionMapping === true ) {
 
@@ -1158,7 +1164,7 @@ THREE.MMDLoader.prototype.createMesh = function ( model, texturePath, onProgress
 							c.width = image.width;
 							c.height = image.height;
 
-							var ctx = c.getContext( '2d' );
+							var ctx = c.getContext( '2d', { willReadFrequently: true } );
 							ctx.drawImage( image, 0, 0 );
 
 							return ctx.getImageData( 0, 0, c.width, c.height );
@@ -1167,51 +1173,57 @@ THREE.MMDLoader.prototype.createMesh = function ( model, texturePath, onProgress
 
 						function detectTextureTransparency( image, uvs, indices ) {
 
-							var width = image.width;
-							var height = image.height;
-							var data = image.data;
-							var threshold = 253;
+								var width = image.width;
+								var height = image.height;
+								var data = image.data;
+								var threshold = 200;
 
-							if ( data.length / ( width * height ) !== 4 ) {
+								if ( data.length / ( width * height ) !== 4 ) {
 
-								return false;
+									return false;
 
-							}
+								}
 
-							for ( var i = 0; i < indices.length; i += 3 ) {
+								var totalSamples = 0;
+								var transparentSamples = 0;
 
-								var centerUV = { x: 0.0, y: 0.0 };
+								for ( var i = 0; i < indices.length; i += 3 ) {
 
-								for ( var j = 0; j < 3; j++ ) {
+									var centerUV = { x: 0.0, y: 0.0 };
 
-									var index = indices[ i * 3 + j ];
-									var uv = { x: uvs[ index * 2 + 0 ], y: uvs[ index * 2 + 1 ] };
+									for ( var j = 0; j < 3; j++ ) {
 
-									if ( getAlphaByUv( image, uv ) < threshold ) {
+										var index = indices[ i * 3 + j ];
+										var uv = { x: uvs[ index * 2 + 0 ], y: uvs[ index * 2 + 1 ] };
 
-										return true;
+										totalSamples++;
+										if ( getAlphaByUv( image, uv ) < threshold ) {
+
+											transparentSamples++;
+
+										}
+
+										centerUV.x += uv.x;
+										centerUV.y += uv.y;
 
 									}
 
-									centerUV.x += uv.x;
-									centerUV.y += uv.y;
+									centerUV.x /= 3;
+									centerUV.y /= 3;
+
+									totalSamples++;
+									if ( getAlphaByUv( image, centerUV ) < threshold ) {
+
+										transparentSamples++;
+
+									}
 
 								}
 
-								centerUV.x /= 3;
-								centerUV.y /= 3;
-
-								if ( getAlphaByUv( image, centerUV ) < threshold ) {
-
-									return true;
-
-								}
+								// Only mark transparent if > 10% of sampled pixels actually are
+								return totalSamples > 0 && transparentSamples / totalSamples > 0.1;
 
 							}
-
-							return false;
-
-						}
 
 						/*
 						 * This method expects

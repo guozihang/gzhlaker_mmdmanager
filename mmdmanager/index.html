@@ -12,7 +12,7 @@
 </head>
 <body data-spy="scroll" data-target="#bar" data-offset="1">
     <!-- 主体 -->
-    <div id="app" class="el-container is-vertical" @drop="open">
+    <div id="app" class="el-container is-vertical">
         <header class="el-header">
         </header>
         <main class="el-main">
@@ -139,7 +139,7 @@
                         <!--######################### 模型 #########################-->
                         <el-table-column prop="models" >
                             <div slot-scope="scope">
-                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)">模</el-button>
+                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)" @contextmenu.native.prevent="exportToMmd(item)">模</el-button>
                             </div>
                         </el-table-column>
                         <!--######################### 收藏 #########################-->
@@ -220,7 +220,7 @@
                         </el-table-column>
                         <el-table-column prop="models" >
                             <div slot-scope="scope">
-                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)">模</el-button>
+                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)" @contextmenu.native.prevent="exportToMmd(item)">模</el-button>
                             </div>
                         </el-table-column>
                         <el-table-column width="60">
@@ -230,11 +230,11 @@
                         </el-table-column>
                     </el-table>
                 </el-tab-pane>
-                
+
                 <el-tab-pane label="MME">
                     <el-input v-model="search" placeholder="查找...">
                         <template slot="prepend"><el-button type="text" @click="clearTag()"><span>{{tag}}</span></el-button></template>
-                        <template slot="append">模型数：{{getModelsNum()}}</template>
+                        <template slot="append">MME数：{{getMmesNum()}}</template>
                     </el-input>
                     <el-table :data="mmes" stripe style="width: 100%">
                         <!--######################### id #########################-->
@@ -314,7 +314,7 @@
                 <el-tab-pane label="VMD">
                     <el-input v-model="search" placeholder="查找...">
                         <template slot="prepend"><el-button type="text" @click="clearTag()"><span>{{tag}}</span></el-button></template>
-                        <template slot="append">模型数：{{getModelsNum()}}</template>
+                        <template slot="append">VMD数：{{getVmdsNum()}}</template>
                     </el-input>
                     <el-table :data="vmds" stripe style="width: 100%">
                         <!--######################### id #########################-->
@@ -498,6 +498,33 @@
                                     <el-button @click="selectDefaultModel">选择</el-button>
                                 </template>
                             </el-input>
+                        </el-form-item>
+                        <el-form-item label="MMD软件路径">
+                            <el-input v-model="settings.mmdPath" placeholder="MikuMikuDance.exe 路径">
+                                <template slot="append">
+                                    <el-button @click="selectMmdPath">选择</el-button>
+                                </template>
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item label="环境光颜色">
+                            <el-color-picker v-model="settings.preview.ambientColor" @change="applyPreview"></el-color-picker>
+                        </el-form-item>
+                        <el-form-item label="方向光颜色">
+                            <el-color-picker v-model="settings.preview.directionalColor" @change="applyPreview"></el-color-picker>
+                        </el-form-item>
+                        <el-form-item label="显示坐标轴">
+                            <el-switch v-model="settings.preview.showAxis" @change="applyPreview"></el-switch>
+                        </el-form-item>
+                        <el-form-item label="自动旋转">
+                            <el-switch v-model="settings.preview.autoRotate" @change="applyPreview"></el-switch>
+                        </el-form-item>
+                        <el-form-item label="相机FOV">
+                            <el-slider v-model="settings.preview.cameraFov" :min="20" :max="120" @change="applyPreview" style="width:200px"></el-slider>
+                            <span style="margin-left:10px">{{settings.preview.cameraFov}}°</span>
+                        </el-form-item>
+                        <el-form-item label="场景人物共存">
+                            <el-switch :value="settings.preview.dualModel" @change="toggleDualModel"></el-switch>
+                            <span style="margin-left:8px;color:#999;font-size:12px">加载场景时不替换已加载的人物模型</span>
                         </el-form-item>
                         <el-form-item>
                             <el-button type="primary" @click="saveSettings">保存配置</el-button>

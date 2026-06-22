@@ -58,6 +58,15 @@ var componentInit = {
                 } catch(e) {}
             }
             this.$store.state.settings.dataPath = this.$store.state.settings.dataPath || PathManager.PROGRAMPATH;
+            // Merge default preview settings for upgrades from older data.json
+            var s = this.$store.state.settings;
+            if (!s.preview) this.$set(s, 'preview', {});
+            if (s.preview.ambientColor === undefined)     this.$set(s.preview, 'ambientColor', '#666666');
+            if (s.preview.directionalColor === undefined) this.$set(s.preview, 'directionalColor', '#887766');
+            if (s.preview.showAxis === undefined)         this.$set(s.preview, 'showAxis', true);
+            if (s.preview.autoRotate === undefined)       this.$set(s.preview, 'autoRotate', true);
+            if (s.preview.cameraFov === undefined)        this.$set(s.preview, 'cameraFov', 45);
+            if (s.preview.dualModel === undefined)        this.$set(s.preview, 'dualModel', false);
             /*----------------------
             # ● 自动创建所需文件夹
             ----------------------*/
@@ -173,7 +182,7 @@ var componentInit = {
                             window.path.extname(childF[j]).toLowerCase() == ".pmd" ||
                             window.path.extname(childF[j]).toLowerCase() == ".x"
                         ) {
-                            d.models.push("/data/Scene/" + scenes[i] + "/" + childF[j]);
+                            d.models.push(PathManager.SCENEPATH + scenes[i] + "/" + childF[j]);
                         }
                     }
                 }
@@ -449,6 +458,12 @@ var componentIndex = {
         getScenesNum: function () {
             return this.scenes ? this.scenes.length : 0;
         },
+        getMmesNum: function () {
+            return this.mmes ? this.mmes.length : 0;
+        },
+        getVmdsNum: function () {
+            return this.vmds ? this.vmds.length : 0;
+        },
         changeTag: function (item) {
             this.tag = item;
         },
@@ -456,33 +471,60 @@ var componentIndex = {
             this.tag = "";
         },
         updateModel: function (path) {
+            var self = this;
+            var isScene = path.indexOf(PathManager.SCENEPATH) === 0;
+            var dualMode = self.settings.preview && self.settings.preview.dualModel;
+
             if (this.showPath != path) {
-                if (window.model) {
-                    window.scene.remove(window.model);
-                    clearCache(window.model);
-                    this.message("清除缓存");
+                // Remove only the same type when dual mode is on
+                if (dualMode) {
+                    if (isScene && window.sceneModel) {
+                        window.scene.remove(window.sceneModel);
+                        clearCache(window.sceneModel);
+                    } else if (!isScene && window.model) {
+                        window.scene.remove(window.model);
+                        clearCache(window.model);
+                    }
+                } else {
+                    if (window.model) {
+                        window.scene.remove(window.model);
+                        clearCache(window.model);
+                    }
+                    if (window.sceneModel) {
+                        window.scene.remove(window.sceneModel);
+                        clearCache(window.sceneModel);
+                    }
                 }
-                if (window.path.extname(path).toLowerCase() == ".pmx" || window.path.extname(path).toLowerCase() == ".pmd") {
+
+                var ext = window.path.extname(path).toLowerCase();
+                if (ext == ".pmx" || ext == ".pmd") {
                     window.loader.MMDLoader.loadModel(
                         path,
                         function (mmd) {
-                            window.model = mmd;
-                            window.scene.add(window.model);
-                            setupModel(mmd);
-                            resetCamera();
+                            if (dualMode && isScene) {
+                                loadSceneModel(mmd);
+                            } else {
+                                window.model = mmd;
+                                window.scene.add(window.model);
+                                setupModel(mmd, false);
+                                resetCamera();
+                            }
                         },
                         window.onProgress,
                         null
                     );
-                } else if (window.path.extname(path).toLowerCase() == ".x") {
+                } else if (ext == ".x") {
                     window.loader.XLoader.load(
                         path,
                         function (x) {
-                            console.log(x);
-                            window.model = x;
-                            window.scene.add(window.model);
-                            setupModel(x);
-                            resetCamera();
+                            if (dualMode && isScene) {
+                                loadSceneModel(x);
+                            } else {
+                                window.model = x;
+                                window.scene.add(window.model);
+                                setupModel(x, false);
+                                resetCamera();
+                            }
                         },
                         window.onProgress,
                         null
@@ -490,7 +532,6 @@ var componentIndex = {
                 }
                 this.showPath = path;
             } else {
-                // Same model: stop animation, reset pose
                 stopAnimation();
                 resetCamera();
                 $("#modelButton").click();
@@ -599,7 +640,9 @@ var componentIndex = {
                         try { if (!fs.existsSync(dirs[i])) fs.mkdirSync(dirs[i], { recursive: true }); } catch(e) {}
                     }
                 }
-                self.message("配置已保存");
+                self.message("配置已保存，数据刷新中...");
+                // Refresh to reload file lists from potentially new dataPath
+                setTimeout(function () { router.replace('/'); }, 500);
             } catch(e) {
                 self.message("保存失败: " + e.message);
             }
@@ -607,19 +650,53 @@ var componentIndex = {
         resetSettings: function() {
             var defaults = {
                 dataPath: PathManager.PROGRAMPATH,
-                defaultModelPath: ''
+                defaultModelPath: '',
+                mmdPath: '',
+                preview: {
+                    ambientColor: '#666666',
+                    directionalColor: '#887766',
+                    showAxis: true,
+                    autoRotate: true,
+                    cameraFov: 45,
+                    dualModel: false
+                }
             };
             this.settings = defaults;
+            applyPreviewSettings();
             this.message("已恢复默认配置，保存后刷新生效");
         },
-        message: function (info) {
-            const h = this.$createElement;
-            this.$notify({
-                title: "消息",
-                dangerouslyUseHTMLString: true,
-                duration: 800,
-                message: "<div><strong>" + info + "</strong></div>",
+        applyPreview: function() {
+            applyPreviewSettings();
+        },
+        toggleDualModel: function(val) {
+            this.$set(this.settings.preview, 'dualModel', val);
+        },
+        selectMmdPath: function() {
+            var self = this;
+            var currentPath = self.settings.mmdPath || PathManager.SOFTPATH;
+            window.dialog.openFile(currentPath, [{ name: '可执行文件', extensions: ['exe'] }]).then(function(result) {
+                if (result) {
+                    self.settings = Object.assign({}, self.settings, { mmdPath: result });
+                }
             });
+        },
+        exportToMmd: function(modelPath) {
+            var self = this;
+            var mmdPath = self.settings.mmdPath;
+            if (!mmdPath) {
+                self.message("请先在设置中配置 MMD 软件路径");
+                return;
+            }
+            window.exportToMmd({ mmdPath: mmdPath, modelPath: modelPath }).then(function(res) {
+                if (res.success) {
+                    self.message("已发送到 MMD 软件");
+                } else {
+                    self.message("启动失败: " + (res.error || "未知错误"));
+                }
+            });
+        },
+        message: function (info, type) {
+            showNotify(info, type || 'info');
         },
     },
 };
