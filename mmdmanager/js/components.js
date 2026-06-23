@@ -97,6 +97,10 @@ var componentInit = {
                     console.log("data.json create failed:", e);
                 }
             }
+            // Rebuild native menu so folder shortcuts and software items reflect current paths
+            if (window.rebuildMenu) {
+                window.rebuildMenu();
+            }
             /*----------------------
             # ● 读取系统文件列表
             ----------------------*/
@@ -505,6 +509,7 @@ var componentIndex = {
                                 loadSceneModel(mmd);
                             } else {
                                 window.model = mmd;
+                                mmd.userData.modelPath = path;
                                 window.scene.add(window.model);
                                 setupModel(mmd, false);
                                 resetCamera();
@@ -521,6 +526,7 @@ var componentIndex = {
                                 loadSceneModel(x);
                             } else {
                                 window.model = x;
+                                x.userData.modelPath = path;
                                 window.scene.add(window.model);
                                 setupModel(x, false);
                                 resetCamera();
@@ -549,11 +555,15 @@ var componentIndex = {
                 self.message("正在加载默认模型...");
                 window.loader.MMDLoader.loadModel(defaultPath, function(mmd) {
                     window.model = mmd;
+                    mmd.userData.modelPath = defaultPath;
                     model = mmd;
                     window.scene.add(window.model);
                     setupModel(mmd);
-                    // Now load VMD
-                    self._loadVmd(vmdPath);
+                    // Wait one frame for mmdHelper to fully initialize the model's
+                    // animation mixer before pouring VMD data into it
+                    requestAnimationFrame(function() {
+                        self._loadVmd(vmdPath);
+                    });
                 }, window.onProgress, function() {
                     self.message("默认模型加载失败");
                 });
@@ -688,6 +698,30 @@ var componentIndex = {
                 return;
             }
             window.exportToMmd({ mmdPath: mmdPath, modelPath: modelPath }).then(function(res) {
+                if (res.success) {
+                    self.message("已发送到 MMD 软件");
+                } else {
+                    self.message("启动失败: " + (res.error || "未知错误"));
+                }
+            });
+        },
+        exportVmdToMmd: function(vmdPath) {
+            var self = this;
+            var mmdPath = self.settings.mmdPath;
+            if (!mmdPath) {
+                self.message("请先在设置中配置 MMD 软件路径");
+                return;
+            }
+            // Use currently loaded model, or default model from settings
+            var modelPath = window.model ? window.model.userData.modelPath : null;
+            if (!modelPath) {
+                modelPath = self.settings.defaultModelPath;
+            }
+            if (!modelPath) {
+                self.message("请先加载一个模型，或在设置中配置默认模型路径");
+                return;
+            }
+            window.exportToMmd({ mmdPath: mmdPath, modelPath: modelPath, vmdPath: vmdPath }).then(function(res) {
                 if (res.success) {
                     self.message("已发送到 MMD 软件");
                 } else {

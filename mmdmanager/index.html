@@ -386,7 +386,7 @@
                         <!--######################### 动作播放 #########################-->
                         <el-table-column prop="vmds">
                             <div slot-scope="scope">
-                                <el-button size="mini" circle v-for="item in scope.row.vmds" :key="item" @click="playVmd(item)">动</el-button>
+                                <el-button size="mini" circle v-for="item in scope.row.vmds" :key="item" @click="playVmd(item)" @contextmenu.native.prevent="exportVmdToMmd(item)">动</el-button>
                             </div>
                         </el-table-column>
                         <!--######################### 收藏 #########################-->

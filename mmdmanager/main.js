@@ -8,7 +8,19 @@ const fs = require('fs');
 const { spawn } = require('child_process');
 
 // Path constants matching the original PathManager
-const PROGRAMPATH = __dirname;
+// Mirror preload.js logic so main process and renderer agree on paths
+function getProgramPath() {
+    const isPackaged = __dirname.indexOf('.asar') !== -1;
+    if (isPackaged) {
+        if (process.platform === 'win32') {
+            return path.join(process.env.APPDATA, 'mmdmanager');
+        } else {
+            return path.dirname(process.execPath);
+        }
+    }
+    return __dirname;
+}
+const PROGRAMPATH = getProgramPath();
 const DATAPATH = path.join(PROGRAMPATH, 'data') + path.sep;
 const SOFTPATH = path.join(PROGRAMPATH, 'software') + path.sep;
 const PROJECTPATH = path.join(PROGRAMPATH, 'project') + path.sep;
@@ -19,6 +31,7 @@ const VMDPATH = path.join(DATAPATH, 'Vmd') + path.sep;
 const GAMEPATH = path.join(DATAPATH, 'Game') + path.sep;
 
 let mainWindow = null;
+let mmdProcess = null;  // Track MMD process so only one instance runs at a time
 
 function spawnApp(exePath) {
     try {
@@ -31,6 +44,13 @@ function spawnApp(exePath) {
     } catch (err) {
         console.error('Failed to launch:', exePath, err);
     }
+}
+
+// Wrapper for shell.openPath that strips trailing separators.
+// Required on Windows where ShellExecuteW rejects paths ending with backslash.
+function openFolder(folderPath) {
+    const cleaned = folderPath.replace(/[\\/]+$/, '');
+    return shell.openPath(cleaned);
 }
 
 function scanSoftware() {
@@ -81,23 +101,23 @@ function buildMenu() {
                 { type: 'separator' },
                 {
                     label: 'Models 文件夹',
-                    click: () => shell.openPath(MODELPATH)
+                    click: () => openFolder(MODELPATH)
                 },
                 {
                     label: 'Scene 文件夹',
-                    click: () => shell.openPath(SCENEPATH)
+                    click: () => openFolder(SCENEPATH)
                 },
                 {
                     label: 'VMD 文件夹',
-                    click: () => shell.openPath(VMDPATH)
+                    click: () => openFolder(VMDPATH)
                 },
                 {
                     label: 'MME 文件夹',
-                    click: () => shell.openPath(MMEPATH)
+                    click: () => openFolder(MMEPATH)
                 },
                 {
                     label: 'BridgeOut 文件夹',
-                    click: () => shell.openPath(path.join(SOFTPATH, 'MikuMikuDance_V926_Bridge', 'out'))
+                    click: () => openFolder(path.join(SOFTPATH, 'MikuMikuDance_V926_Bridge', 'out'))
                 },
                 { type: 'separator' },
                 ...softwareItems
@@ -176,7 +196,11 @@ ipcMain.handle('clipboard:write', (event, text) => {
 });
 
 ipcMain.handle('shell:openPath', (event, folderPath) => {
-    return shell.openPath(folderPath);
+    return openFolder(folderPath);
+});
+
+ipcMain.handle('menu:rebuild', () => {
+    buildMenu();
 });
 
 ipcMain.handle('child-process:spawn', (event, { exePath, args, options }) => {
@@ -192,14 +216,20 @@ ipcMain.handle('child-process:spawn', (event, { exePath, args, options }) => {
     }
 });
 
-ipcMain.handle('export:toMmd', async (event, { mmdPath, modelPath }) => {
+ipcMain.handle('export:toMmd', async (event, { mmdPath, modelPath, vmdPath }) => {
     try {
-        const proc = spawn(mmdPath, [modelPath], {
+        // If MMD is already running, don't open another instance
+        if (mmdProcess && mmdProcess.exitCode === null) {
+            return { success: true };
+        }
+        const args = vmdPath ? [modelPath, vmdPath] : [modelPath];
+        mmdProcess = spawn(mmdPath, args, {
             detached: true,
             stdio: 'ignore',
-            cwd: path.dirname(mmdPath)
+            cwd: path.dirname(modelPath)
         });
-        proc.unref();
+        mmdProcess.unref();
+        mmdProcess.on('exit', () => { mmdProcess = null; });
         return { success: true };
     } catch (err) {
         return { success: false, error: err.message };

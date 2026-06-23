@@ -148,6 +148,10 @@ contextBridge.exposeInMainWorld('copyFolder', (src, dest) => {
     return ipcRenderer.invoke('fs:copyFolder', { src, dest });
 });
 
+contextBridge.exposeInMainWorld('rebuildMenu', () => {
+    return ipcRenderer.invoke('menu:rebuild');
+});
+
 // Listen for menu navigation commands from main process
 ipcRenderer.on('menu:navigate', (event, route) => {
     window.postMessage({ type: 'menu:navigate', route: route }, '*');
