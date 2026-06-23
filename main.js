@@ -220,7 +220,7 @@ ipcMain.handle('export:toMmd', async (event, { mmdPath, modelPath, vmdPath }) =>
     try {
         const exeName = path.basename(mmdPath);
 
-        // Check if MMD is already running via tasklist
+        // Check if MMD is already running
         if (process.platform === 'win32') {
             const checkRunning = () => new Promise((resolve) => {
                 exec(`tasklist /fi "imagename eq ${exeName}" /fo csv /nh`, (err, stdout) => {
@@ -231,29 +231,31 @@ ipcMain.handle('export:toMmd', async (event, { mmdPath, modelPath, vmdPath }) =>
                 return { success: true };
             }
         } else {
-            // macOS/Linux: use stored process reference
             if (mmdProcess) {
                 try { process.kill(mmdProcess.pid, 0); return { success: true }; }
                 catch (_) { mmdProcess = null; }
             }
         }
 
-        // Normalize paths — renderer may build paths with mixed / and \ on Windows
         const normalizedModel = path.normalize(modelPath);
         const normalizedVmd = vmdPath ? path.normalize(vmdPath) : null;
-        const modelDir = path.dirname(normalizedModel);
 
-        // shell: true routes through cmd.exe on Windows, which behaves more like
-        // double-click / drag-drop than raw CreateProcess. No detached flag to
-        // avoid DETACHED_PROCESS interfering with MMD's file I/O initialization.
-        const args = normalizedVmd ? [normalizedModel, normalizedVmd] : [normalizedModel];
-        mmdProcess = spawn(mmdPath, args, {
-            shell: true,
-            stdio: 'ignore',
-            cwd: modelDir
-        });
-        mmdProcess.unref();
-        mmdProcess.on('exit', () => { mmdProcess = null; });
+        // shell.openPath = ShellExecuteW = same as double-click in Explorer
+        // Textures load correctly. Combined with tasklist check above, only
+        // one MMD instance runs at a time.
+        const err = shell.openPath(normalizedModel);
+        if (err) {
+            return { success: false, error: err };
+        }
+        if (normalizedVmd) {
+            setTimeout(() => {
+                spawn(mmdPath, [normalizedVmd], {
+                    detached: true,
+                    stdio: 'ignore',
+                    cwd: path.dirname(normalizedVmd)
+                }).unref();
+            }, 1000);
+        }
         return { success: true };
     } catch (err) {
         return { success: false, error: err.message };
