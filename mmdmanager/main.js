@@ -5,7 +5,7 @@ app.name = 'MMDManager';
 
 const path = require('path');
 const fs = require('fs');
-const { spawn } = require('child_process');
+const { spawn, exec } = require('child_process');
 
 // Path constants matching the original PathManager
 // Mirror preload.js logic so main process and renderer agree on paths
@@ -218,44 +218,42 @@ ipcMain.handle('child-process:spawn', (event, { exePath, args, options }) => {
 
 ipcMain.handle('export:toMmd', async (event, { mmdPath, modelPath, vmdPath }) => {
     try {
-        // Check if previous MMD instance is still alive
-        if (mmdProcess) {
-            try {
-                process.kill(mmdProcess.pid, 0);
-                return { success: true }; // still running
-            } catch (_) {
-                mmdProcess = null;
+        const exeName = path.basename(mmdPath);
+
+        // Check if MMD is already running via tasklist
+        if (process.platform === 'win32') {
+            const checkRunning = () => new Promise((resolve) => {
+                exec(`tasklist /fi "imagename eq ${exeName}" /fo csv /nh`, (err, stdout) => {
+                    resolve(!err && stdout && stdout.includes(exeName));
+                });
+            });
+            if (await checkRunning()) {
+                return { success: true };
+            }
+        } else {
+            // macOS/Linux: use stored process reference
+            if (mmdProcess) {
+                try { process.kill(mmdProcess.pid, 0); return { success: true }; }
+                catch (_) { mmdProcess = null; }
             }
         }
+
         // Normalize paths — renderer may build paths with mixed / and \ on Windows
         const normalizedModel = path.normalize(modelPath);
         const normalizedVmd = vmdPath ? path.normalize(vmdPath) : null;
+        const modelDir = path.dirname(normalizedModel);
 
-        // Use shell.openPath for the model file — this calls ShellExecuteW, the
-        // same API Windows Explorer uses for drag-drop / double-click. MMD
-        // resolves textures correctly through this path, unlike raw spawn argv.
-        const modelErr = shell.openPath(normalizedModel);
-        if (!modelErr) {
-            if (normalizedVmd) {
-                // Model opened via shell, now spawn MMD for the VMD motion
-                // (MMD accepts VMD via command line once it's running with a model)
-                spawn(mmdPath, [normalizedVmd], {
-                    detached: true,
-                    stdio: 'ignore',
-                    cwd: path.dirname(normalizedVmd)
-                }).unref();
-            }
-            return { success: true };
-        }
-
-        // Fallback: shell.openPath failed (no file association), use spawn
+        // shell: true routes through cmd.exe on Windows, which behaves more like
+        // double-click / drag-drop than raw CreateProcess. No detached flag to
+        // avoid DETACHED_PROCESS interfering with MMD's file I/O initialization.
         const args = normalizedVmd ? [normalizedModel, normalizedVmd] : [normalizedModel];
         mmdProcess = spawn(mmdPath, args, {
-            detached: true,
+            shell: true,
             stdio: 'ignore',
-            cwd: path.dirname(normalizedModel)
+            cwd: modelDir
         });
         mmdProcess.unref();
+        mmdProcess.on('exit', () => { mmdProcess = null; });
         return { success: true };
     } catch (err) {
         return { success: false, error: err.message };
