@@ -4,12 +4,24 @@ on:
   push:
     branches: [main]
     paths:
-      - 'mmdmanager/**'
+      - 'main.js'
+      - 'preload.js'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'css/**'
+      - 'js/**'
       - '.github/workflows/**'
   pull_request:
     branches: [main]
     paths:
-      - 'mmdmanager/**'
+      - 'main.js'
+      - 'preload.js'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'css/**'
+      - 'js/**'
       - '.github/workflows/**'
   workflow_dispatch:
 
@@ -26,10 +38,6 @@ jobs:
           - os: windows-latest
             platform: win
     runs-on: ${{ matrix.os }}
-
-    defaults:
-      run:
-        working-directory: mmdmanager
 
     steps:
       - name: Checkout
@@ -57,7 +65,7 @@ jobs:
         with:
           tag_name: v${{ steps.ver.outputs.v }}-${{ matrix.platform }}
           name: MMDManager v${{ steps.ver.outputs.v }} (${{ matrix.platform }})
-          files: mmdmanager/dist/*
+          files: dist/*
           draft: false
           generate_release_notes: false
         env:
@@ -68,4 +76,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: MMDManager-${{ matrix.platform }}
-          path: mmdmanager/dist/*
+          path: dist/*

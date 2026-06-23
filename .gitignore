@@ -24,4 +24,9 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
-mmdmanager/.temp/
+.temp/
+data/
+project/
+software/
+useless/
+node_modules/
