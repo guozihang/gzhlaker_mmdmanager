@@ -218,18 +218,44 @@ ipcMain.handle('child-process:spawn', (event, { exePath, args, options }) => {
 
 ipcMain.handle('export:toMmd', async (event, { mmdPath, modelPath, vmdPath }) => {
     try {
-        // If MMD is already running, don't open another instance
-        if (mmdProcess && mmdProcess.exitCode === null) {
+        // Check if previous MMD instance is still alive
+        if (mmdProcess) {
+            try {
+                process.kill(mmdProcess.pid, 0);
+                return { success: true }; // still running
+            } catch (_) {
+                mmdProcess = null;
+            }
+        }
+        // Normalize paths — renderer may build paths with mixed / and \ on Windows
+        const normalizedModel = path.normalize(modelPath);
+        const normalizedVmd = vmdPath ? path.normalize(vmdPath) : null;
+
+        // Use shell.openPath for the model file — this calls ShellExecuteW, the
+        // same API Windows Explorer uses for drag-drop / double-click. MMD
+        // resolves textures correctly through this path, unlike raw spawn argv.
+        const modelErr = shell.openPath(normalizedModel);
+        if (!modelErr) {
+            if (normalizedVmd) {
+                // Model opened via shell, now spawn MMD for the VMD motion
+                // (MMD accepts VMD via command line once it's running with a model)
+                spawn(mmdPath, [normalizedVmd], {
+                    detached: true,
+                    stdio: 'ignore',
+                    cwd: path.dirname(normalizedVmd)
+                }).unref();
+            }
             return { success: true };
         }
-        const args = vmdPath ? [modelPath, vmdPath] : [modelPath];
+
+        // Fallback: shell.openPath failed (no file association), use spawn
+        const args = normalizedVmd ? [normalizedModel, normalizedVmd] : [normalizedModel];
         mmdProcess = spawn(mmdPath, args, {
             detached: true,
             stdio: 'ignore',
-            cwd: path.dirname(modelPath)
+            cwd: path.dirname(normalizedModel)
         });
         mmdProcess.unref();
-        mmdProcess.on('exit', () => { mmdProcess = null; });
         return { success: true };
     } catch (err) {
         return { success: false, error: err.message };
