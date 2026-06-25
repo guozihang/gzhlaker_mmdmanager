@@ -51,6 +51,17 @@
             </div>
         </div>
         <button id="modelButton" type="button" class="btn btn-primary" data-toggle="modal" data-target="#myModal" style="display: none;">打开模态框</button>
+        <!-- Import progress overlay -->
+        <div v-if="importProgress.visible" class="import-progress-card" style="position:fixed;top:12px;right:12px;z-index:9999;
+            background:#fff;border-radius:10px;padding:18px;width:340px;
+            box-shadow:0 4px 20px rgba(0,0,0,.12)">
+            <div style="font-weight:bold;margin-bottom:10px;font-size:14px">导入进度</div>
+            <el-progress :percentage="importProgress.pct" :stroke-width="8"
+                :color="importProgress.pct===100 ? '#67c23a' : '#409eff'"></el-progress>
+            <div style="margin-top:10px;font-size:13px;color:#303133">{{importProgress.text}}</div>
+            <div style="margin-top:4px;font-size:12px;color:#909399">{{importProgress.detail}}</div>
+            <div style="font-size:12px;color:#c0c4cc;margin-top:2px">{{importProgress.done}}/{{importProgress.total}}</div>
+        </div>
     </div>
     
     <!--------------------------- Template ----------------------------->
@@ -137,9 +148,20 @@
                             </div>
                         </el-table-column>
                         <!--######################### 模型 #########################-->
-                        <el-table-column prop="models" >
-                            <div slot-scope="scope">
-                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)" @contextmenu.native.prevent="exportToMmd(item)">模</el-button>
+                        <el-table-column prop="models" width="280">
+                            <div slot-scope="scope" :style="settings.preview.buttonMode==='thumbnail' ? 'display:flex;flex-direction:column;gap:4px;align-items:flex-start' : ''">
+                                <span v-for="item in scope.row.models" :key="item">
+                                    <el-popover placement="left" width="400" trigger="hover" :disabled="!hasPreview(item)">
+                                        <div v-if="hasPreview(item)" style="text-align:center">
+                                            <img :src="previewSrc(item)" loading="lazy" style="max-width:380px;max-height:500px">
+                                        </div>
+                                        <div v-else style="text-align:center;color:#999;padding:20px">
+                                            暂无预览<br><small>点击模型加载后自动生成</small>
+                                        </div>
+                                        <img v-if="settings.preview.buttonMode==='thumbnail' && hasPreview(item)" slot="reference" :src="previewSrc(item)" @click="updateModel(item)" @contextmenu.native.prevent="exportToMmd(item)" style="border-radius:4px;cursor:pointer;display:block">
+                                        <el-button v-else slot="reference" size="mini" circle @click="updateModel(item)" @contextmenu.native.prevent="exportToMmd(item)">模</el-button>
+                                    </el-popover>
+                                </span>
                             </div>
                         </el-table-column>
                         <!--######################### 收藏 #########################-->
@@ -218,9 +240,20 @@
                                 </div>
                             </div>
                         </el-table-column>
-                        <el-table-column prop="models" >
-                            <div slot-scope="scope">
-                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)" @contextmenu.native.prevent="exportToMmd(item)">模</el-button>
+                        <el-table-column prop="models" width="280">
+                            <div slot-scope="scope" :style="settings.preview.buttonMode==='thumbnail' ? 'display:flex;flex-direction:column;gap:4px;align-items:flex-start' : ''">
+                                <span v-for="item in scope.row.models" :key="item">
+                                    <el-popover placement="left" width="400" trigger="hover" :disabled="!hasPreview(item)">
+                                        <div v-if="hasPreview(item)" style="text-align:center">
+                                            <img :src="previewSrc(item)" loading="lazy" style="max-width:380px;max-height:500px">
+                                        </div>
+                                        <div v-else style="text-align:center;color:#999;padding:20px">
+                                            暂无预览<br><small>点击模型加载后自动生成</small>
+                                        </div>
+                                        <img v-if="settings.preview.buttonMode==='thumbnail' && hasPreview(item)" slot="reference" :src="previewSrc(item)" @click="updateModel(item)" @contextmenu.native.prevent="exportToMmd(item)" style="border-radius:4px;cursor:pointer;display:block">
+                                        <el-button v-else slot="reference" size="mini" circle @click="updateModel(item)" @contextmenu.native.prevent="exportToMmd(item)">模</el-button>
+                                    </el-popover>
+                                </span>
                             </div>
                         </el-table-column>
                         <el-table-column width="60">
@@ -470,9 +503,20 @@
                             </div>
                         </el-table-column>
                         <!--######################### 模型 #########################-->
-                        <el-table-column prop="models" >
-                            <div slot-scope="scope">
-                                <el-button size="mini" circle v-for="item in scope.row.models" :key="item" @click="updateModel(item)">模</el-button>
+                        <el-table-column prop="models" width="280">
+                            <div slot-scope="scope" :style="settings.preview.buttonMode==='thumbnail' ? 'display:flex;flex-direction:column;gap:4px;align-items:flex-start' : ''">
+                                <span v-for="item in scope.row.models" :key="item">
+                                    <el-popover placement="left" width="400" trigger="hover" :disabled="!hasPreview(item)">
+                                        <div v-if="hasPreview(item)" style="text-align:center">
+                                            <img :src="previewSrc(item)" loading="lazy" style="max-width:380px;max-height:500px">
+                                        </div>
+                                        <div v-else style="text-align:center;color:#999;padding:20px">
+                                            暂无预览<br><small>点击模型加载后自动生成</small>
+                                        </div>
+                                        <img v-if="settings.preview.buttonMode==='thumbnail' && hasPreview(item)" slot="reference" :src="previewSrc(item)" @click="updateModel(item)" @contextmenu.prevent="exportToMmd(item)" loading="lazy" style="border-radius:4px;cursor:pointer;display:block">
+                                        <el-button v-else slot="reference" size="mini" circle @click="updateModel(item)">模</el-button>
+                                    </el-popover>
+                                </span>
                             </div>
                         </el-table-column>
                         <!--######################### 删除 #########################-->
@@ -515,7 +559,7 @@
                         <el-form-item label="显示坐标轴">
                             <el-switch v-model="settings.preview.showAxis" @change="applyPreview"></el-switch>
                         </el-form-item>
-                        <el-form-item label="自动旋转">
+                        <el-form-item label="摄像机自动旋转">
                             <el-switch v-model="settings.preview.autoRotate" @change="applyPreview"></el-switch>
                         </el-form-item>
                         <el-form-item label="相机FOV">
@@ -525,6 +569,18 @@
                         <el-form-item label="场景人物共存">
                             <el-switch :value="settings.preview.dualModel" @change="toggleDualModel"></el-switch>
                             <span style="margin-left:8px;color:#999;font-size:12px">加载场景时不替换已加载的人物模型</span>
+                        </el-form-item>
+                        <el-form-item label="模型按钮样式">
+                            <el-radio-group v-model="settings.preview.buttonMode" @change="applyPreview">
+                                <el-radio label="hover">悬浮预览（显示"模"字，鼠标悬浮出图）</el-radio>
+                                <el-radio label="thumbnail">缩略图（用预览图替代"模"字）</el-radio>
+                            </el-radio-group>
+                        </el-form-item>
+                        <el-form-item label="每页显示数量">
+                            <el-input-number v-model="settings.preview.pageSize" :min="5" :max="100" :step="5"></el-input-number>
+                        </el-form-item>
+                        <el-form-item label="开发者工具">
+                            <el-button @click="toggleDevTools">打开/关闭 DevTools</el-button>
                         </el-form-item>
                         <el-form-item>
                             <el-button type="primary" @click="saveSettings">保存配置</el-button>
@@ -540,23 +596,24 @@
                         <p>MMDManager 是一款 MikuMikuDance（MMD）模型/场景/动作/特效资源管理工具。支持拖拽导入、3D 预览、一键导出到 MMD 软件。</p>
 
                         <h3>二、导入资源</h3>
-                        <p>将文件夹或文件<b>直接拖入软件窗口</b>即可导入：</p>
+                        <p>将文件夹或文件<b>直接拖入软件窗口</b>即可导入，支持同时拖入多个文件夹：</p>
                         <ul>
                             <li><b>人物模型</b>：拖入包含 <code>.pmx</code> / <code>.pmd</code> 文件的文件夹</li>
                             <li><b>场景模型</b>：拖入时选择「场景」</li>
                             <li><b>VMD 动作</b>：拖入包含 <code>.vmd</code> 文件的文件夹</li>
                             <li><b>MME 特效</b>：拖入包含 <code>.fx</code> / <code>.x</code> 文件的文件夹</li>
                         </ul>
-                        <p>导入后资源会自动分类到对应标签页中。<b>注意</b>：导入文件夹才能保留贴图，单独拖入模型文件不会复制贴图。</p>
+                        <p>导入后右上角显示进度条，自动生成模型预览图。<b>注意</b>：导入文件夹才能保留贴图，单独拖入模型文件不会复制贴图。</p>
+                        <p><b>批量导入</b>：拖入多个文件夹时，弹出列表对话框，可逐个设置导入为模型或场景。</p>
 
                         <h3>三、加载模型</h3>
-                        <p>在「人物模型」或「场景模型」标签中，<b>左键点击「模」按钮</b>即可在右侧 3D 预览区加载模型。</p>
+                        <p>在「人物模型」或「场景模型」标签中，<b>左键点击「模」按钮或缩略图</b>即可在 3D 预览区加载模型。</p>
                         <ul>
                             <li><b>鼠标左键拖动</b>：旋转视角</li>
                             <li><b>鼠标滚轮</b>：缩放</li>
                             <li><b>鼠标右键拖动</b>：平移</li>
                         </ul>
-                        <p>若开启了「场景人物共存」，可以同时加载一个场景和一个角色模型。</p>
+                        <p>模型加载后会自动生成预览截图，鼠标悬浮「模」按钮可查看大图。若开启了「场景人物共存」，可以同时加载一个场景和一个角色模型。</p>
 
                         <h3>四、播放动作（VMD）</h3>
                         <p>在「VMD」标签中，<b>左键点击「动」按钮</b>即可播放动作：</p>
@@ -567,34 +624,36 @@
 
                         <h3>五、导出到 MMD 软件</h3>
                         <ul>
-                            <li><b>右键「模」</b>：将模型发送到 MMD 软件中打开（需先在设置中配置 MMD 路径）</li>
+                            <li><b>右键「模」/ 缩略图</b>：将模型发送到 MMD 软件中打开</li>
                             <li><b>右键「动」</b>：将当前模型 + VMD 动作一起发送到 MMD</li>
                         </ul>
-                        <p>右键导出使用与拖入相同的 Windows Shell 机制，贴图可正常加载。同一时间只会打开一个 MMD 实例。</p>
+                        <p>需先在设置中配置 MMD 软件路径。使用 Windows Shell 机制，贴图正常加载，同一时间只打开一个 MMD 实例。</p>
 
                         <h3>六、菜单栏</h3>
                         <ul>
                             <li><b>Models / Scene / VMD / MME 文件夹</b>：在资源管理器中打开对应目录</li>
-                            <li><b>软件列表</b>：将 <code>.exe</code> 程序放入 <code>software/</code> 目录的子文件夹中，菜单栏会自动识别</li>
+                            <li><b>软件列表</b>：将 <code>.exe</code> 放入 <code>software/</code> 子文件夹，菜单栏自动识别</li>
+                            <li><b>快捷键</b>：Ctrl+Shift+1 模型管理 / Ctrl+Shift+2 工程页面</li>
                         </ul>
 
-                        <h3>七、设置</h3>
+                        <h3>七、设置说明</h3>
                         <ul>
-                            <li><b>数据存储目录</b>：所有模型、场景、VMD 等资源的存放位置</li>
-                            <li><b>默认模型路径</b>：点击 VMD 时无已加载模型时自动使用的模型</li>
-                            <li><b>MMD 软件路径</b>：右键导出功能使用的 MMD 可执行文件路径</li>
-                            <li><b>预览设置</b>：环境光、方向光颜色、坐标轴、自动旋转、FOV、场景人物共存</li>
+                            <li><b>数据存储目录</b>：所有资源的存放位置</li>
+                            <li><b>默认模型路径</b>：点击 VMD 时自动加载的默认模型</li>
+                            <li><b>MMD 软件路径</b>：右键导出使用的 MMD 可执行文件</li>
+                            <li><b>环境光 / 方向光颜色</b>：3D 预览区光照颜色</li>
+                            <li><b>显示坐标轴</b>：预览区是否显示坐标轴</li>
+                            <li><b>摄像机自动旋转</b>：加载模型后摄像机是否自动环绕</li>
+                            <li><b>相机 FOV</b>：视野角度（20-120°）</li>
+                            <li><b>场景人物共存</b>：加载场景时不替换已加载的人物模型</li>
+                            <li><b>模型按钮样式</b>：悬浮预览（鼠标悬停出图）/ 缩略图（预览图替代"模"字）</li>
+                            <li><b>每页显示数量</b>：表格分页，每页显示条数</li>
+                            <li><b>开发者工具</b>：打开/关闭 DevTools 控制台</li>
                         </ul>
-                        <p>修改设置后点击「保存配置」生效。</p>
+                        <p>修改后点击「保存配置」生效。</p>
 
-                        <h3>八、收藏与项目管理</h3>
-                        <p>在「收藏」标签中可以标记重要的模型，方便快速查找。工程文件在「Project」页面管理。</p>
-
-                        <h3>九、快捷键</h3>
-                        <ul>
-                            <li><b>Ctrl+Shift+1</b>：切换到模型管理页面</li>
-                            <li><b>Ctrl+Shift+2</b>：切换到工程页面</li>
-                        </ul>
+                        <h3>八、收藏与工程</h3>
+                        <p>「收藏」标签可标记常用模型。「Project」页面管理工程文件。</p>
                     </div>
                 </el-tab-pane>
             </el-tabs>

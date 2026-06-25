@@ -153,7 +153,8 @@ function createWindow() {
 
     mainWindow.loadFile('index.html');
 
-    mainWindow.webContents.openDevTools();
+    // DevTools closed by default — toggle via settings button or shortcut
+    // mainWindow.webContents.openDevTools();
 
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
@@ -201,6 +202,16 @@ ipcMain.handle('shell:openPath', (event, folderPath) => {
 
 ipcMain.handle('menu:rebuild', () => {
     buildMenu();
+});
+
+ipcMain.handle('devtools:toggle', () => {
+    if (mainWindow) {
+        if (mainWindow.webContents.isDevToolsOpened()) {
+            mainWindow.webContents.closeDevTools();
+        } else {
+            mainWindow.webContents.openDevTools();
+        }
+    }
 });
 
 ipcMain.handle('child-process:spawn', (event, { exePath, args, options }) => {

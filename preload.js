@@ -152,6 +152,16 @@ contextBridge.exposeInMainWorld('rebuildMenu', () => {
     return ipcRenderer.invoke('menu:rebuild');
 });
 
+contextBridge.exposeInMainWorld('savePreviewImage', (filePath, base64Data) => {
+    var raw = base64Data.replace(/^data:image\/png;base64,/, '');
+    var buffer = Buffer.from(raw, 'base64');
+    fs.writeFileSync(filePath, buffer);
+});
+
+contextBridge.exposeInMainWorld('toggleDevTools', () => {
+    return ipcRenderer.invoke('devtools:toggle');
+});
+
 // Listen for menu navigation commands from main process
 ipcRenderer.on('menu:navigate', (event, route) => {
     window.postMessage({ type: 'menu:navigate', route: route }, '*');
@@ -166,30 +176,28 @@ document.addEventListener('dragover', function (e) {
 document.addEventListener('drop', function (e) {
     e.preventDefault();
     e.stopPropagation();
+    var files = e.dataTransfer.files;
     var items = e.dataTransfer.items;
-    if (!items || items.length === 0) return;
+    if (!files || files.length === 0) return;
 
-    var droppedPath = e.dataTransfer.files[0].path;
-    if (droppedPath) {
-        // Windows / Linux: File.path works
-        window.postMessage({ type: 'file:drop', path: droppedPath }, '*');
+    // Windows / Linux: File.path works — collect all paths
+    if (files[0].path) {
+        var paths = [];
+        for (var i = 0; i < files.length; i++) {
+            if (files[i].path) paths.push(files[i].path);
+        }
+        if (paths.length === 1) {
+            window.postMessage({ type: 'file:drop', path: paths[0] }, '*');
+        } else {
+            window.postMessage({ type: 'file:batch-drop', paths: paths, total: paths.length }, '*');
+        }
         return;
     }
 
-    // macOS: webkitGetAsEntry tree walk
-    var entry = items[0].webkitGetAsEntry();
-    if (!entry) return;
+    // macOS: webkitGetAsEntry tree walk for all items
+    if (!items || items.length === 0) return;
 
-    // For single files, make a folder named after the file (without extension)
-    var folderName = entry.name;
-    if (entry.isFile) {
-        folderName = entry.name.replace(/\.[^.]+$/, '');
-    }
-    var destDir = pathMod.join(PROGRAMPATH, '.temp', folderName);
-    try { fs.rmSync(destDir, { recursive: true, force: true }); } catch (_) {}
-    fs.mkdirSync(destDir, { recursive: true });
-
-    var pending = [];
+    var allPending = [];
 
     function copyEntry(ent, targetDir) {
         if (ent.isFile) {
@@ -229,32 +237,60 @@ document.addEventListener('drop', function (e) {
         }
     }
 
-    if (entry.isFile) {
-        pending.push(copyEntry(entry, destDir));
-    } else {
-        // Directory: copy contents into destDir
-        pending.push(new Promise(function (resolve) {
-            var childPromises = [];
-            var dirReader = entry.createReader();
-            function readBatch() {
-                dirReader.readEntries(function (entries) {
-                    if (entries.length === 0) {
-                        Promise.all(childPromises).then(resolve);
-                        return;
-                    }
-                    for (var i = 0; i < entries.length; i++) {
-                        childPromises.push(copyEntry(entries[i], destDir));
+    function processEntry(entry) {
+        return new Promise(function(resolveEntry) {
+            var folderName = entry.name;
+            if (entry.isFile) {
+                folderName = entry.name.replace(/\.[^.]+$/, '');
+            }
+            var destDir = pathMod.join(PROGRAMPATH, '.temp', folderName);
+            try { fs.rmSync(destDir, { recursive: true, force: true }); } catch (_) {}
+            fs.mkdirSync(destDir, { recursive: true });
+
+            var pending = [];
+            if (entry.isFile) {
+                pending.push(copyEntry(entry, destDir));
+            } else {
+                pending.push(new Promise(function (resolve) {
+                    var childPromises = [];
+                    var dirReader = entry.createReader();
+                    function readBatch() {
+                        dirReader.readEntries(function (entries) {
+                            if (entries.length === 0) {
+                                Promise.all(childPromises).then(resolve);
+                                return;
+                            }
+                            for (var i = 0; i < entries.length; i++) {
+                                childPromises.push(copyEntry(entries[i], destDir));
+                            }
+                            readBatch();
+                        });
                     }
                     readBatch();
-                });
+                }));
             }
-            readBatch();
-        }));
+            Promise.all(pending).then(function () {
+                resolveEntry(destDir);
+            }).catch(function (err) {
+                console.error('[preload] copy error:', err);
+                resolveEntry(null);
+            });
+        });
     }
 
-    Promise.all(pending).then(function () {
-        window.postMessage({ type: 'file:drop', path: destDir }, '*');
-    }).catch(function (err) {
-        console.error('[preload] copy error:', err);
+    // Process all dropped items in parallel
+    for (var i = 0; i < items.length; i++) {
+        var entry = items[i].webkitGetAsEntry();
+        if (entry) allPending.push(processEntry(entry));
+    }
+
+    Promise.all(allPending).then(function (results) {
+        var paths = results.filter(Boolean);
+        if (paths.length === 0) return;
+        if (paths.length === 1) {
+            window.postMessage({ type: 'file:drop', path: paths[0] }, '*');
+        } else {
+            window.postMessage({ type: 'file:batch-drop', paths: paths, total: paths.length }, '*');
+        }
     });
 });

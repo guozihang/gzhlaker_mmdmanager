@@ -46,7 +46,7 @@ function initRenderer() {
     var h = Math.min(w * 0.75, 600);
     // Guard against zero height when modal is initially hidden
     if (h < 100) h = 450;
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setSize(w, h);
     effect = new THREE.OutlineEffect(renderer);
@@ -135,6 +135,7 @@ function resetCamera() {
     controls.target.set(0, 10, 0);
     controls.update();
 }
+window.resetCamera = resetCamera;
 
 function setupModel(m, isScene) {
     if (!mmdHelper.objects.get(m)) {
@@ -202,6 +203,20 @@ function render() {
         effect.render(scene, camera);
     }
 }
+
+// Capture current 3D view as a base64 PNG data URL.
+// Temporarily disables auto-rotate to get a clean static shot.
+function capturePreview() {
+    if (!renderer) return null;
+    var prevAutoRotate = controls ? controls.autoRotate : false;
+    if (controls) controls.autoRotate = false;
+    controls && controls.update();
+    effect.render(scene, camera);
+    var dataUrl = renderer.domElement.toDataURL('image/png');
+    if (controls) controls.autoRotate = prevAutoRotate;
+    return dataUrl;
+}
+window.capturePreview = capturePreview;
 
 function animate() {
     requestAnimationFrame(animate);

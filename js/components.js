@@ -67,6 +67,8 @@ var componentInit = {
             if (s.preview.autoRotate === undefined)       this.$set(s.preview, 'autoRotate', true);
             if (s.preview.cameraFov === undefined)        this.$set(s.preview, 'cameraFov', 45);
             if (s.preview.dualModel === undefined)        this.$set(s.preview, 'dualModel', false);
+            if (s.preview.buttonMode === undefined)      this.$set(s.preview, 'buttonMode', 'hover');
+            if (s.preview.pageSize === undefined)        this.$set(s.preview, 'pageSize', 20);
             /*----------------------
             # ● 自动创建所需文件夹
             ----------------------*/
@@ -291,6 +293,10 @@ var componentIndex = {
     data() {
         return {
             visible: false,
+            currentPageModels: 1,
+            currentPageScenes: 1,
+            currentPageMmes: 1,
+            currentPageVmds: 1,
         };
     },
     computed: {
@@ -402,8 +408,34 @@ var componentIndex = {
                 this.$store.commit("settings", value);
             },
         },
+        importProgress: {
+            get() { return window._importProgress || {}; },
+        },
+        pageSize: {
+            get() {
+                var s = this.$store.state.settings;
+                return (s && s.preview && s.preview.pageSize) || 20;
+            },
+        },
+        pagedModels: {
+            get() { return this.paginate(this.models, this.currentPageModels); },
+        },
+        pagedScenes: {
+            get() { return this.paginate(this.scenes, this.currentPageScenes); },
+        },
+        pagedMmes: {
+            get() { return this.paginate(this.mmes, this.currentPageMmes); },
+        },
+        pagedVmds: {
+            get() { return this.paginate(this.vmds, this.currentPageVmds); },
+        },
     },
     methods: {
+        paginate: function(arr, page) {
+            var size = this.pageSize;
+            var start = (page - 1) * size;
+            return arr.slice(start, start + size);
+        },
         open: function (address) {
             window.shell.openPath(address);
         },
@@ -514,6 +546,7 @@ var componentIndex = {
                                 setupModel(mmd, false);
                                 resetCamera();
                             }
+                            self._capturePreviewAfterLoad(path);
                         },
                         window.onProgress,
                         null
@@ -531,6 +564,7 @@ var componentIndex = {
                                 setupModel(x, false);
                                 resetCamera();
                             }
+                            self._capturePreviewAfterLoad(path);
                         },
                         window.onProgress,
                         null
@@ -729,11 +763,122 @@ var componentIndex = {
                 }
             });
         },
+        _getPreviewPath: function(modelPath) {
+            var dir = window.path.dirname(modelPath);
+            var base = window.path.basename(modelPath);
+            var name = base.replace(/\.[^.]+$/, ''); // strip extension
+            return dir + '/' + name + '.png';
+        },
+        _capturePreviewAfterLoad: function(modelPath) {
+            var previewPath = this._getPreviewPath(modelPath);
+            var self = this;
+            // Wait for textures to finish loading, then capture
+            setTimeout(function() {
+                window.fs.exists(previewPath, function(exists) {
+                    if (exists) return;
+                    var dataUrl = window.capturePreview && window.capturePreview();
+                    if (dataUrl && window.savePreviewImage) {
+                        window.savePreviewImage(previewPath, dataUrl);
+                        // Invalidate cache so hasPreview returns true next time
+                        self['__prev_' + modelPath] = true;
+                    }
+                });
+            }, 2500);
+        },
+        hasPreview: function(modelPath) {
+            if (!modelPath) return false;
+            var key = '__prev_' + modelPath;
+            if (this[key] !== undefined) return this[key];
+            try {
+                this[key] = window.fs.existsSync(this._getPreviewPath(modelPath));
+            } catch(e) {
+                this[key] = false;
+            }
+            return this[key];
+        },
+        previewSrc: function(modelPath) {
+            if (!modelPath) return '';
+            return this._getPreviewPath(modelPath) + '?t=' + Date.now();
+        },
+        toggleDevTools: function() {
+            window.toggleDevTools && window.toggleDevTools();
+        },
         message: function (info, type) {
             showNotify(info, type || 'info');
         },
     },
 };
+// Auto-load all models in a folder for preview capture (background).
+// onProgress(name, step, idx, total) called for each model.
+// Returns a Promise that resolves when all captures are done.
+window.autoPreviewImport = function(folderPath, onProgress) {
+    onProgress = onProgress || function(){};
+    return new Promise(function(resolveAll) {
+        try {
+            var files = window.fs.readdirSync(folderPath);
+            var modelFiles = [];
+            for (var i = 0; i < files.length; i++) {
+                var ext = window.path.extname(files[i]).toLowerCase();
+                if (ext === '.pmx' || ext === '.pmd') {
+                    modelFiles.push(folderPath + '/' + files[i]);
+                }
+            }
+            if (modelFiles.length === 0) { resolveAll(); return; }
+
+            var prevModel = window.model;
+            if (prevModel) window.scene.remove(prevModel);
+            window.model = null;
+
+            var idx = 0;
+            var total = modelFiles.length;
+            function processNext() {
+                if (idx >= modelFiles.length) {
+                    if (prevModel) {
+                        window.scene.add(prevModel);
+                        window.model = prevModel;
+                    }
+                    resolveAll();
+                    return;
+                }
+                var modelPath = modelFiles[idx];
+                var modelName = window.path.basename(modelPath);
+                var curIdx = idx + 1;
+                idx++;
+                onProgress(modelName, '加载中...', curIdx, total);
+                window.loader.MMDLoader.loadModel(
+                    modelPath,
+                    function(mmd) {
+                        window.model = mmd;
+                        mmd.userData.modelPath = modelPath;
+                        window.scene.add(mmd);
+                        setupModel(mmd, false);
+                        onProgress(modelName, '渲染截图...', curIdx, total);
+                        var previewPath = window.path.dirname(modelPath) + '/' +
+                            window.path.basename(modelPath).replace(/\.[^.]+$/, '') + '.png';
+                        setTimeout(function() {
+                            window.resetCamera && window.resetCamera();
+                            var dataUrl = window.capturePreview && window.capturePreview();
+                            if (dataUrl && window.savePreviewImage) {
+                                window.savePreviewImage(previewPath, dataUrl);
+                            }
+                            onProgress(modelName, '完成', curIdx, total);
+                            window.scene.remove(mmd);
+                            window.model = null;
+                            processNext();
+                        }, 2000);
+                    },
+                    window.onProgress,
+                    function() { onProgress(modelName, '失败', curIdx, total); processNext(); }
+                );
+            }
+            processNext();
+        } catch(e) {
+            console.error('[autoPreview] Error:', e);
+            resolveAll();
+        }
+    });
+};
+
 var componentSetting = {
     template: '#tSetting',
     created: function() {
